@@ -1,0 +1,156 @@
+<UserControl x:Class="DateCheck.Desktop.Views.CalendarioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DateCheck.Desktop.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:CalendarioViewModel}">
+    <UserControl.Resources>
+        <!-- Célula clicável sem o visual padrão de botão -->
+        <Style x:Key="CelulaDoDia" TargetType="Button">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Fundo" Background="White" BorderBrush="#E5E7EB" BorderThickness="0.5">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fundo" Property="Background" Value="#EFF6FF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="24,16,24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Cabeçalho: mês e navegação -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="{Binding Titulo}" FontSize="28" FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="◀" ToolTip="Mês anterior" Command="{Binding MesAnteriorCommand}"
+                        Style="{StaticResource BotaoPequeno}" />
+                <Button Content="Hoje" ToolTip="Voltar para o mês atual" Command="{Binding IrParaMesAtualCommand}"
+                        Style="{StaticResource BotaoPequeno}" />
+                <Button Content="▶" ToolTip="Próximo mês" Command="{Binding MesSeguinteCommand}"
+                        Style="{StaticResource BotaoPequeno}" />
+                <Button Content="Ver compromissos de hoje" Command="{Binding IrParaHojeCommand}"
+                        Style="{StaticResource BotaoPequeno}" Margin="12,0,0,0" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Dias da semana -->
+        <ItemsControl Grid.Row="1" ItemsSource="{x:Static vm:CalendarioViewModel.DiasDaSemana}" Margin="0,0,0,4">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" Columns="7" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" HorizontalAlignment="Center" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextoSecundario}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Grade de 6 semanas -->
+        <ItemsControl Grid.Row="2" ItemsSource="{Binding Dias}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="6" Columns="7" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:DiaCalendarioViewModel}">
+                    <Button Style="{StaticResource CelulaDoDia}"
+                            Command="{Binding DataContext.AbrirDiaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}">
+                        <Grid x:Name="Celula" Margin="4">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DoMesAtual}" Value="False">
+                                            <Setter Property="Opacity" Value="0.45" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" HorizontalAlignment="Left" MinWidth="24" Height="24" CornerRadius="12"
+                                    Padding="4,0">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding EhHoje}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource Destaque}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding Numero}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="Black" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding EhHoje}" Value="True">
+                                                    <Setter Property="Foreground" Value="White" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+
+                            <TextBlock Grid.Row="0" Text="{Binding ExcedenteTexto}" FontSize="11" FontWeight="SemiBold"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextoSecundario}"
+                                       ToolTip="Há mais compromissos neste dia; clique para ver todos"
+                                       Visibility="{Binding TemExcedente, Converter={StaticResource BoolParaVisibilidade}}" />
+
+                            <StackPanel Grid.Row="1" Margin="0,2,0,0">
+                                <ItemsControl ItemsSource="{Binding Chips}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:ChipCalendario}">
+                                            <Border CornerRadius="3" Padding="4,1" Margin="0,0,0,2"
+                                                    Background="{Binding Status, Converter={StaticResource StatusParaCor}}">
+                                                <TextBlock Text="{Binding Texto}" Foreground="White" FontSize="11"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>
