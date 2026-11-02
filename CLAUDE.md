@@ -15,6 +15,7 @@ Infrastructure → Application → Domain
 - `src/DateCheck.Infrastructure`: AppDbContext, `IEntityTypeConfiguration<T>`, repositórios, migrations.
 - `src/DateCheck.Desktop`: Views XAML, ViewModels, conversores, serviços de UI.
 - `tests/DateCheck.Domain.Tests`, `tests/DateCheck.Application.Tests`.
+- ViewModels e Views só conversam com a camada Application (interfaces de serviço). Apenas o `App.xaml.cs`, como composition root, pode referenciar tipos da Infrastructure.
 
 ## Regras de domínio
 - `Agendamento`: Id, Titulo, Descricao, Inicio, Fim, Status, recorrência. Setters privados; mudanças só por `Concluir()`, `Cancelar()`, `Reagendar(inicio, fim)`, `AlterarRecorrencia(...)`.
