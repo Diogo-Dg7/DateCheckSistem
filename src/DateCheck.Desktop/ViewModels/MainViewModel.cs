@@ -21,4 +21,7 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [RelayCommand]
     private Task IrParaCalendarioAsync() => Navegacao.MostrarCalendarioAsync();
+
+    [RelayCommand]
+    private void AbrirConfiguracoes() => Dialogos.AbrirConfiguracoes();
 }

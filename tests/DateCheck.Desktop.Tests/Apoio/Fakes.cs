@@ -27,6 +27,10 @@ public sealed class FakeDialogService : IDialogService
 
     public bool ResultadoDoFormulario { get; set; }
 
+    public int ConfiguracoesAbertas { get; private set; }
+
+    public bool ResultadoDasConfiguracoes { get; set; }
+
     public DateTime? DataEscolhida { get; set; }
 
     public void MostrarErro(string mensagem) => Erros.Add(mensagem);
@@ -45,6 +49,12 @@ public sealed class FakeDialogService : IDialogService
     {
         FormulariosAbertos.Add((agendamentoId, diaSugerido));
         return ResultadoDoFormulario;
+    }
+
+    public bool AbrirConfiguracoes()
+    {
+        ConfiguracoesAbertas++;
+        return ResultadoDasConfiguracoes;
     }
 
     public DateTime? PedirDataHora(string titulo, string rotulo, DateTime inicial)

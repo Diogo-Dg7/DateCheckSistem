@@ -1,0 +1,38 @@
+<Window x:Class="DateCheck.Desktop.Views.ConfiguracoesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:DateCheck.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:ConfiguracoesViewModel}"
+        Title="Configurações" Width="460" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <StackPanel Margin="24,16,24,20">
+        <TextBlock Text="Avisos de compromissos" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Avisar" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBox Text="{Binding MinutosAntes, UpdateSourceTrigger=PropertyChanged}" Width="64" MaxLength="4"
+                     HorizontalContentAlignment="Right" />
+            <TextBlock Text="minutos antes de cada compromisso" VerticalAlignment="Center" Margin="8,0,0,0" />
+        </StackPanel>
+        <TextBlock Text="Use 0 para avisar só na hora em que o compromisso começa."
+                   Foreground="{StaticResource TextoSecundario}" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap" />
+
+        <Separator Margin="0,18,0,12" />
+
+        <TextBlock Text="Aplicativo" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <CheckBox Content="Iniciar com o Windows" IsChecked="{Binding IniciarComWindows}" />
+
+        <TextBlock Margin="0,18,0,0" Foreground="{StaticResource TextoSecundario}" FontSize="12" TextWrapping="Wrap">
+            <Run Text="As preferências ficam em" />
+            <Run Text="{Binding LocalDoArquivo, Mode=OneWay}" />
+        </TextBlock>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Cancelar" IsCancel="True" Command="{Binding CancelarCommand}" MinWidth="90" Margin="0,0,8,0" />
+            <Button Content="Salvar" IsDefault="True" Command="{Binding SalvarCommand}" MinWidth="90" />
+        </StackPanel>
+    </StackPanel>
+</Window>
