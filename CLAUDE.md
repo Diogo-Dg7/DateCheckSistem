@@ -3,7 +3,7 @@
 Agenda pessoal desktop (Windows) em estilo calendário. Abre com o Windows e mostra os compromissos. Também é portfólio no GitHub: histórico de commits limpo.
 
 ## Stack
-C# / .NET 10, SDK fixado em `global.json` (10.0.403, `rollForward: latestFeature`). WPF + MVVM (CommunityToolkit.Mvvm). SQL Server Express (`.\SQLEXPRESS`) + EF Core Code First com migrations. DI via Microsoft.Extensions.Hosting no `App.xaml.cs`. xUnit. Bandeja: Hardcodet.NotifyIcon.Wpf. Toast: Microsoft.Toolkit.Uwp.Notifications.
+C# / .NET 10, SDK fixado em `global.json` (10.0.403, `rollForward: latestFeature`). WPF + MVVM (CommunityToolkit.Mvvm). SQL Server Express (`.\SQLEXPRESS`) + EF Core Code First com migrations. DI via Microsoft.Extensions.Hosting no `App.xaml.cs`. xUnit. Bandeja: Hardcodet.NotifyIcon.Wpf. Toast: `AppNotificationManager` (Windows App SDK; ver fase 6).
 
 ## Arquitetura (dependências apontam para dentro)
 ```
@@ -70,7 +70,7 @@ Infrastructure → Application → Domain
 ## Fluxo de trabalho
 Trabalhar por fases e parar ao fim de cada uma: 1 estrutura-inicial, 2 dominio (+testes), 3 aplicacao (+testes), 4 infraestrutura (+migration inicial), 5 telas, 6 recursos-desktop, 7 docs/readme (+ tag `v0.1.0`). Se algo for ambíguo ou tecnicamente questionável, perguntar antes de implementar.
 
-Capturas de tela para o README: `tools/capturas/capturar.ps1` (instruções no cabeçalho do script; usa um banco de demonstração, nunca o real).
+Capturas de tela para o README (`docs/imagens`): `tools/capturas/criar-banco-demo.ps1` cria o banco de demonstração e `tools/capturas/capturar.ps1` gera as imagens (instruções no cabeçalho; nunca usam o banco real; só a janela do app é copiada, via PrintWindow).
 
 ## Comandos
 ```powershell
