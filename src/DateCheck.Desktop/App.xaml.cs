@@ -7,7 +7,8 @@ namespace DateCheck.Desktop;
 /// <summary>
 /// Interaction logic for App.xaml
 /// </summary>
-public partial class App : Application
+// Qualificado porque o namespace DateCheck.Application oculta System.Windows.Application.
+public partial class App : System.Windows.Application
 {
 }
 
