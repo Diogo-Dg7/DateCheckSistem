@@ -14,10 +14,10 @@ Infrastructure → Application → Domain
 - `src/DateCheck.Application`: serviços, DTOs, casos de uso, interfaces de repositório.
 - `src/DateCheck.Infrastructure`: AppDbContext, `IEntityTypeConfiguration<T>`, repositórios, migrations.
 - `src/DateCheck.Desktop`: Views XAML, ViewModels, conversores, serviços de UI.
-- `tests/DateCheck.Domain.Tests`, `tests/DateCheck.Application.Tests`.
+- `tests/DateCheck.Domain.Tests`, `tests/DateCheck.Application.Tests`, `tests/DateCheck.Infrastructure.Tests`, `tests/DateCheck.Desktop.Tests`.
 - ViewModels e Views só conversam com a camada Application (interfaces de serviço). Apenas o `App.xaml.cs`, como composition root, pode referenciar tipos da Infrastructure.
 - No Desktop, usar sempre `System.Windows.Application` (nunca `Application` solto): o namespace `DateCheck.Application` o oculta.
-- Testes de integração do repositório ficam em `tests/DateCheck.Infrastructure.Tests`, rodam no `.SQLEXPRESS` real (não InMemory/SQLite, que escondem diferenças de provider), num banco de nome único por execução criado com `Migrate()` e apagado ao fim. Marcados com `[Trait("Categoria", "Integracao")]`; para pular: `dotnet test --filter "Categoria!=Integracao"`. A connection string de teste pode ser sobrescrita pela variável de ambiente `DATECHECK_TEST_CONNECTION`.
+- Testes de integração do repositório ficam em `tests/DateCheck.Infrastructure.Tests`, rodam no `.\SQLEXPRESS` real (não InMemory/SQLite, que escondem diferenças de provider), num banco de nome único por execução criado com `Migrate()` e apagado ao fim. Marcados com `[Trait("Categoria", "Integracao")]`; para pular: `dotnet test --filter "Categoria!=Integracao"`. A connection string de teste pode ser sobrescrita pela variável de ambiente `DATECHECK_TEST_CONNECTION`.
 
 ## Regras de domínio
 - `Agendamento`: Id, Titulo, Descricao, Inicio, Fim, Status, `SerieId` (Guid?, opcional). Setters privados; mudanças só por `Concluir()`, `Cancelar()`, `Reabrir()`, `Reagendar(inicio, fim)`, `AlterarDetalhes(...)`, `AssociarSerie(...)`; `CopiarPara(novoInicio, serieId?)` é o método de fábrica de cópias.
@@ -52,7 +52,7 @@ Infrastructure → Application → Domain
 - Connection string em `appsettings.json`: `Server=.\SQLEXPRESS;Database=DateCheckDb;Trusted_Connection=True;TrustServerCertificate=True;`
 - `AddDbContextFactory<AppDbContext>`; cada operação cria/descarta seu contexto. Nunca manter DbContext vivo.
 - `EnableRetryOnFailure` no `UseSqlServer`. Se o banco não responder na inicialização, mostrar mensagem amigável.
-- Índice em `Inicio`. Migrations aplicadas automaticamente na inicialização e commitadas.
+- Índices em `Inicio` e `SerieId`. Migrations aplicadas automaticamente na inicialização e commitadas.
 
 ## Telas e comportamento
 - Telas: **Hoje** (inicial; destaque do próximo e dos atrasados; concluir/cancelar/editar/novo) e **Calendário mensal** (navegação, cor por status, clicar no dia). Formulário de criar/editar com opção de duplicar/repetir e aviso de conflito. UI em pt-BR.
