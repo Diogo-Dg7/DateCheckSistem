@@ -3,7 +3,9 @@ using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Threading;
 using DateCheck.Application;
+using DateCheck.Desktop.Navegacao;
 using DateCheck.Desktop.Servicos;
+using DateCheck.Desktop.ViewModels;
 using DateCheck.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -79,6 +81,12 @@ public partial class App : System.Windows.Application
         builder.Services.AddInfrastructure(builder.Configuration);
 
         builder.Services.AddSingleton<IDialogService, DialogService>();
+
+        builder.Services.AddSingleton<NavegacaoService>();
+        builder.Services.AddSingleton<INavegacao>(sp => sp.GetRequiredService<NavegacaoService>());
+        builder.Services.AddSingleton<HojeViewModel>();
+        builder.Services.AddSingleton<CalendarioViewModel>();
+        builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 
         return builder.Build();
