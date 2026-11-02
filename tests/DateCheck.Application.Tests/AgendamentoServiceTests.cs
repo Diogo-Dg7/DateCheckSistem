@@ -230,6 +230,20 @@ public class AgendamentoServiceTests
     }
 
     [Fact]
+    public async Task ListarPeriodo_RetornaOsQueSeSobrepoemEmOrdemSemIncluirBordasEncostadas()
+    {
+        Semear("Antes", H(6), H(8));
+        Semear("Encostado no início", H(7), H(9));
+        Semear("Dentro", H(10), H(11));
+        Semear("Atravessa o fim", H(11, 30), H(13));
+        Semear("Encostado no fim", H(12), H(13));
+
+        var lista = await _servico.ListarPeriodoAsync(H(9), H(12));
+
+        Assert.Equal(["Dentro", "Atravessa o fim"], lista.Select(a => a.Titulo));
+    }
+
+    [Fact]
     public async Task ListarDoMes_DezembroNaoVazaParaJaneiro()
     {
         Semear("Dezembro", new DateTime(2026, 12, 31, 9, 0, 0), new DateTime(2026, 12, 31, 10, 0, 0));
