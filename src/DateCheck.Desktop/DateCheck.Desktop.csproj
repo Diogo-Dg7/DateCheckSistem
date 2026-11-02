@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Ícone do app: gerado por tools/icone/gerar-icone.ps1 -->
+    <Resource Include="Recursos\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="DateCheck.Desktop.Tests" />
   </ItemGroup>
 
@@ -28,6 +33,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Recursos\app.ico</ApplicationIcon>
     <!-- Windows App SDK sem empacotamento (MSIX): necessário para AppNotificationManager em app WPF comum. -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <WindowsPackageType>None</WindowsPackageType>
