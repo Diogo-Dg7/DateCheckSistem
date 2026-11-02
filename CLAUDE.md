@@ -55,10 +55,13 @@ Infrastructure → Application → Domain
 - Commits pequenos, um por passo lógico que compila, **Conventional Commits em português, imperativo, minúsculo** (`feat`, `fix`, `test`, `refactor`, `docs`, `chore`). Ex.: `feat: adiciona entidade Agendamento com regras de status`.
 - **NÃO fazer push, merge nem abrir PR sem confirmação do usuário.** Ao fim de cada fase, mostrar resumo e `git log --oneline` da branch e aguardar aprovação.
 - Nunca commitar senhas ou segredos (usar User Secrets).
+- Validação commit a commit (`git rebase --exec`) deve rodar num **worktree separado com build limpo** (sem `bin/obj`): `git worktree add ../dc-validacao <commit>`, `dotnet build && dotnet test` e `git worktree remove --force ../dc-validacao`. Numa pasta com `obj` reaproveitado, o WPF gera falsos "FALHOU" (`CS2001`, arquivos `.g.cs` ausentes). Se um commit falhar no `--exec`, reconfirme num worktree limpo antes de concluir que é erro de código.
 - Fim de linha: `.gitattributes` com `* text=auto` (sem `core.autocrlf` local).
 
 ## Fluxo de trabalho
 Trabalhar por fases e parar ao fim de cada uma: 1 estrutura-inicial, 2 dominio (+testes), 3 aplicacao (+testes), 4 infraestrutura (+migration inicial), 5 telas, 6 recursos-desktop, 7 docs/readme (+ tag `v0.1.0`). Se algo for ambíguo ou tecnicamente questionável, perguntar antes de implementar.
+
+Capturas de tela para o README: `tools/capturas/capturar.ps1` (instruções no cabeçalho do script; usa um banco de demonstração, nunca o real).
 
 ## Comandos
 ```powershell
