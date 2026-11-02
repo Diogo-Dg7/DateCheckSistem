@@ -24,6 +24,10 @@ tests/
 └── DateCheck.Application.Tests
 ```
 
+## Modelo de agendamentos
+
+Cada agendamento é independente, com horário e status próprios (Pendente, Concluído ou Cancelado), e pode ser reaberto. Não existe recorrência salva: **duplicar** e **repetir** (diário, semanal ou mensal, até uma data de fim de no máximo 1 ano) apenas criam cópias. As cópias criadas juntas compartilham um `SerieId`. Conflitos de horário são avisados, mas nunca bloqueiam.
+
 ## Pré-requisitos
 
 - .NET SDK 10.0.403 ou superior da série 10.0.x (veja `global.json`)
