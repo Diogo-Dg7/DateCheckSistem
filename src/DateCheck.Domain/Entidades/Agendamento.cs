@@ -15,6 +15,9 @@ public class Agendamento
     public DateTime Fim { get; private set; }
     public StatusAgendamento Status { get; private set; }
 
+    /// <summary>Agrupa cópias criadas juntas (ex.: "repetir"); nulo para agendamentos avulsos.</summary>
+    public Guid? SerieId { get; private set; }
+
     // Construtor sem parâmetros reservado para a materialização pelo ORM.
     private Agendamento()
     {
@@ -73,6 +76,29 @@ public class Agendamento
 
         Inicio = inicio;
         Fim = fim;
+    }
+
+    /// <summary>
+    /// Cria um novo agendamento pendente com o mesmo título, descrição e duração, começando em <paramref name="novoInicio"/>.
+    /// A cópia é independente do original e só pertence a uma série se <paramref name="serieId"/> for informado.
+    /// </summary>
+    public Agendamento CopiarPara(DateTime novoInicio, Guid? serieId = null)
+    {
+        var copia = new Agendamento(Titulo, novoInicio, novoInicio + (Fim - Inicio), Descricao);
+        copia.SerieId = serieId;
+        return copia;
+    }
+
+    /// <summary>Associa o agendamento a uma série; não permite trocar por outra série.</summary>
+    public void AssociarSerie(Guid serieId)
+    {
+        if (serieId == Guid.Empty)
+            throw new DomainException("O identificador da série é inválido.");
+
+        if (SerieId is { } atual && atual != serieId)
+            throw new DomainException("O agendamento já pertence a outra série.");
+
+        SerieId = serieId;
     }
 
     private void GarantirPendente(string acao)
