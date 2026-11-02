@@ -1,8 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
     <UseWPF>true</UseWPF>
+    <!-- Herdado do Desktop (Windows App SDK sem empacotamento). -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>false</SelfContained>
+    <!-- O auto-inicializador do Windows App SDK é compilado no Desktop e aqui; o conflito é inofensivo. -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
