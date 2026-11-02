@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
 namespace DateCheck.Desktop.Servicos;
 
 /// <summary>
@@ -6,6 +9,9 @@ namespace DateCheck.Desktop.Servicos;
 /// </summary>
 public sealed class InstanciaUnica : IDisposable
 {
+    // AllowSetForegroundWindow(ASFW_ANY): qualquer processo pode tomar o primeiro plano.
+    private const int AsfwAny = -1;
+
     private readonly string _nomeDoMutex;
     private readonly string _nomeDoEvento;
 
@@ -37,10 +43,14 @@ public sealed class InstanciaUnica : IDisposable
 
     /// <summary>
     /// Pede à instância principal que se mostre. Chamado pela segunda execução antes de encerrar.
+    /// Antes, concede à instância principal o direito de ir para o primeiro plano: o Windows só permite
+    /// isso a quem recebeu a última entrada do usuário, que é esta segunda execução.
     /// Retorna false se não foi possível alcançar a outra instância.
     /// </summary>
     public bool AvisarInstanciaExistente()
     {
+        PermitirPrimeiroPlano();
+
         try
         {
             using var evento = EventWaitHandle.OpenExisting(_nomeDoEvento);
@@ -51,6 +61,23 @@ public sealed class InstanciaUnica : IDisposable
             return false;
         }
     }
+
+    private static void PermitirPrimeiroPlano()
+    {
+        try
+        {
+            using var atual = Process.GetCurrentProcess();
+            var outra = Process.GetProcessesByName(atual.ProcessName).FirstOrDefault(p => p.Id != atual.Id);
+            AllowSetForegroundWindow(outra?.Id ?? AsfwAny);
+        }
+        catch (Exception)
+        {
+            // Sem a permissão a janela pode apenas piscar na barra de tarefas; não impede o aviso.
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool AllowSetForegroundWindow(int dwProcessId);
 
     /// <summary>
     /// Passa a escutar os pedidos de abertura vindos de outras execuções. O retorno é chamado em
