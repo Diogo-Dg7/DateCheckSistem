@@ -1,9 +1,13 @@
 ﻿using System.Globalization;
+using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Threading;
 using DateCheck.Application;
+using DateCheck.Desktop.Configuracoes;
 using DateCheck.Desktop.Navegacao;
+using DateCheck.Desktop.Notificacoes;
 using DateCheck.Desktop.Servicos;
 using DateCheck.Desktop.ViewModels;
 using DateCheck.Infrastructure;
@@ -20,33 +24,63 @@ public partial class App : System.Windows.Application
 
     private IHost? _host;
 
+    // Em campos: se fossem variáveis locais, o coletor de lixo poderia liberar o Mutex e a trava sumiria.
+    private InstanciaUnica? _instancia;
+    private IconeDaBandeja? _bandeja;
+    private GerenciadorDeToast? _toast;
+    private ControleDaJanela? _controle;
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // Sem janela aberta ainda: só encerra quando pedirmos (ou quando a janela principal fechar, mais abaixo).
+        // Sem janela aberta e, depois, com a janela escondida na bandeja: só encerramos por Sair/Shutdown.
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        // Primeiríssimo passo, antes do Host e do banco: se já existe uma instância, avisa a primeira e sai.
+        _instancia = new InstanciaUnica();
+        if (!_instancia.TentarAssumir())
+        {
+            _instancia.AvisarInstanciaExistente();
+            Shutdown();
+            return;
+        }
 
         ConfigurarCultura();
         DispatcherUnhandledException += AoOcorrerExcecaoNaoTratada;
+        SessionEnding += AoEncerrarSessaoDoWindows;
 
         try
         {
             _host = CriarHost(e.Args);
+            var services = _host.Services;
 
-            var dialogos = _host.Services.GetRequiredService<IDialogService>();
-            if (!await InicializarBancoAsync(_host.Services, dialogos))
+            _controle = services.GetRequiredService<ControleDaJanela>();
+            _instancia.EscutarPedidosDeAbertura(_controle.Mostrar);
+
+            // O ícone aparece antes do banco: com o Windows recém-ligado, o SQL Server pode demorar a subir.
+            _bandeja = services.GetRequiredService<IconeDaBandeja>();
+            _bandeja.Criar();
+            _bandeja.MostrarBalao(TituloApp, "Iniciando…");
+
+            IniciarToasts();
+
+            if (!await InicializarBancoAsync(services, services.GetRequiredService<IDialogService>()))
             {
                 Shutdown();
                 return;
             }
 
-            await _host.StartAsync();
+            // Se o início com o Windows está ligado, mantém o caminho do registro apontando para este executável.
+            services.GetRequiredService<InicioComWindowsService>().CorrigirCaminhoSeNecessario();
 
-            var janela = _host.Services.GetRequiredService<MainWindow>();
+            await _host.StartAsync(); // inicia as notificações em segundo plano
+
+            var janela = services.GetRequiredService<MainWindow>();
             MainWindow = janela;
-            ShutdownMode = ShutdownMode.OnMainWindowClose;
+            _controle.Registrar(janela);
             janela.Show();
+            _bandeja.FecharBalao();
         }
         catch (Exception ex)
         {
@@ -59,11 +93,18 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // Ordem: tira os avisos da Central de Ações, remove o ícone (senão ele fica "fantasma"), para o Host
+        // e só então solta a trava de instância única.
+        _toast?.Encerrar();
+        _bandeja?.Dispose();
+
         if (_host is not null)
         {
             Task.Run(() => _host.StopAsync(TimeSpan.FromSeconds(5))).GetAwaiter().GetResult();
             _host.Dispose();
         }
+
+        _instancia?.Dispose();
 
         base.OnExit(e);
     }
@@ -82,15 +123,61 @@ public partial class App : System.Windows.Application
 
         builder.Services.AddSingleton<IDialogService, DialogService>();
 
+        // Comportamento de aplicativo: janela/bandeja, início com o Windows, preferências e notificações.
+        builder.Services.AddSingleton<ControleDaJanela>();
+        builder.Services.AddSingleton<IControleDaJanela>(sp => sp.GetRequiredService<ControleDaJanela>());
+        builder.Services.AddSingleton<IconeDaBandeja>();
+
+        builder.Services.AddSingleton<IRegistroDeInicializacao, RegistroDeInicializacaoDoWindows>();
+        builder.Services.AddSingleton(sp => new InicioComWindowsService(
+            sp.GetRequiredService<IRegistroDeInicializacao>(), CaminhoDoExecutavel));
+        builder.Services.AddSingleton<IInicioComWindowsService>(sp => sp.GetRequiredService<InicioComWindowsService>());
+
+        builder.Services.AddSingleton<IArmazenamentoDePreferencias>(
+            _ => new ArmazenamentoJsonDePreferencias(ArmazenamentoJsonDePreferencias.CaminhoPadrao()));
+        builder.Services.AddSingleton<IPreferenciasService, PreferenciasService>();
+
+        builder.Services.AddSingleton<INotificador, AppNotificacaoNotificador>();
+        builder.Services.AddHostedService<NotificacaoService>();
+
+        // Telas.
         builder.Services.AddSingleton<NavegacaoService>();
         builder.Services.AddSingleton<INavegacao>(sp => sp.GetRequiredService<NavegacaoService>());
         builder.Services.AddSingleton<HojeViewModel>();
         builder.Services.AddSingleton<CalendarioViewModel>();
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddTransient<AgendamentoFormViewModel>();
+        builder.Services.AddTransient<ConfiguracoesViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 
         return builder.Build();
+    }
+
+    /// <summary>Caminho do .exe (não o do dotnet.exe, caso o app seja iniciado por "dotnet DateCheck.Desktop.dll").</summary>
+    private static string CaminhoDoExecutavel()
+    {
+        var caminho = Environment.ProcessPath;
+        if (caminho is not null && !Path.GetFileNameWithoutExtension(caminho).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+            return caminho;
+
+        return Path.ChangeExtension(Assembly.GetEntryAssembly()!.Location, ".exe");
+    }
+
+    /// <summary>
+    /// Registra o app para receber cliques nos toasts. Se falhar (por exemplo, ambiente sem suporte),
+    /// o aplicativo continua funcionando, só sem a ativação por clique.
+    /// </summary>
+    private void IniciarToasts()
+    {
+        try
+        {
+            _toast = new GerenciadorDeToast();
+            _toast.Iniciar(_controle!.MostrarHoje);
+        }
+        catch (Exception)
+        {
+            _toast = null;
+        }
     }
 
     /// <summary>
@@ -135,6 +222,10 @@ public partial class App : System.Windows.Application
             typeof(FrameworkElement),
             new FrameworkPropertyMetadata(XmlLanguage.GetLanguage(cultura.IetfLanguageTag)));
     }
+
+    /// <summary>Sem isto, esconder a janela no "fechar" bloquearia o desligamento/logoff do Windows.</summary>
+    private void AoEncerrarSessaoDoWindows(object sender, SessionEndingCancelEventArgs e) =>
+        _controle?.PermitirFechamento();
 
     private void AoOcorrerExcecaoNaoTratada(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
