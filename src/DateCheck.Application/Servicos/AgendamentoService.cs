@@ -78,13 +78,10 @@ public sealed class AgendamentoService : IAgendamentoService
             .ToList();
     }
 
-    public async Task<IReadOnlyList<AgendamentoDto>> ListarDoMesAsync(
-        int ano, int mes, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<AgendamentoDto>> ListarPeriodoAsync(
+        DateTime inicio, DateTime fim, CancellationToken cancellationToken = default)
     {
-        var primeiroDia = new DateTime(ano, mes, 1);
-
-        var agendamentos = await _repositorio.ListarPorPeriodoAsync(
-            primeiroDia, primeiroDia.AddMonths(1), cancellationToken);
+        var agendamentos = await _repositorio.ListarPorPeriodoAsync(inicio, fim, cancellationToken);
 
         var agora = Agora();
         return agendamentos
@@ -92,6 +89,13 @@ public sealed class AgendamentoService : IAgendamentoService
             .ThenBy(a => a.Fim)
             .Select(a => AgendamentoMapper.ParaDto(a, agora))
             .ToList();
+    }
+
+    public Task<IReadOnlyList<AgendamentoDto>> ListarDoMesAsync(
+        int ano, int mes, CancellationToken cancellationToken = default)
+    {
+        var primeiroDia = new DateTime(ano, mes, 1);
+        return ListarPeriodoAsync(primeiroDia, primeiroDia.AddMonths(1), cancellationToken);
     }
 
     private async Task<AgendamentoDto> AlterarStatusAsync(
