@@ -19,7 +19,7 @@ public abstract class ViewModelBase : ObservableObject
     /// (<see cref="DomainException"/> e <see cref="AplicacaoException"/>). Outras exceções seguem
     /// para o tratamento global do aplicativo. Retorna false se uma regra foi violada.
     /// </summary>
-    protected async Task<bool> ExecutarAsync(Func<Task> acao)
+    protected async Task<bool> ExecutarAsync(Func<Task> acao, string? prefixoDaMensagem = null)
     {
         try
         {
@@ -28,7 +28,7 @@ public abstract class ViewModelBase : ObservableObject
         }
         catch (Exception ex) when (ex is DomainException or AplicacaoException)
         {
-            Dialogos.MostrarErro(ex.Message);
+            Dialogos.MostrarErro(prefixoDaMensagem is null ? ex.Message : $"{prefixoDaMensagem}\n\n{ex.Message}");
             return false;
         }
     }

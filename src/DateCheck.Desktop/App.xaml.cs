@@ -87,6 +87,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<HojeViewModel>();
         builder.Services.AddSingleton<CalendarioViewModel>();
         builder.Services.AddSingleton<MainViewModel>();
+        builder.Services.AddTransient<AgendamentoFormViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 
         return builder.Build();

@@ -12,4 +12,13 @@ public interface IDialogService
 
     /// <summary>Retorna true para "tentar novamente" e false para "sair".</summary>
     bool PerguntarTentarNovamente(string titulo, string mensagem);
+
+    /// <summary>
+    /// Abre o formulário modal para criar (<paramref name="agendamentoId"/> nulo) ou editar um compromisso.
+    /// <paramref name="diaSugerido"/> pré-preenche a data de um novo compromisso. Retorna true se algo foi salvo.
+    /// </summary>
+    bool AbrirFormulario(int? agendamentoId, DateTime? diaSugerido = null);
+
+    /// <summary>Pede uma data e hora; retorna nulo se o usuário cancelar.</summary>
+    DateTime? PedirDataHora(string titulo, string rotulo, DateTime inicial);
 }
