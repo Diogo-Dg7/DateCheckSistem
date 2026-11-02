@@ -37,7 +37,7 @@ Infrastructure → Application → Domain
 - Índice em `Inicio`. Migrations aplicadas automaticamente na inicialização e commitadas.
 
 ## Telas e comportamento
-- Telas: **Hoje** (inicial; destaque do próximo e dos atrasados; concluir/cancelar/editar/novo) e **Calendário mensal** (navegação, cor por status, clicar no dia). Formulário de criar/editar com recorrência e aviso de conflito. UI em pt-BR.
+- Telas: **Hoje** (inicial; destaque do próximo e dos atrasados; concluir/cancelar/editar/novo) e **Calendário mensal** (navegação, cor por status, clicar no dia). Formulário de criar/editar com opção de duplicar/repetir e aviso de conflito. UI em pt-BR.
 - Iniciar com o Windows (HKCU\...\Run, liga/desliga no app), ícone de bandeja (fechar esconde), toast X min antes (padrão 10, sem duplicar), instância única via Mutex.
 
 ## Git / GitHub
