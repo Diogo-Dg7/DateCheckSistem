@@ -170,3 +170,7 @@ Os testes de integração rodam no SQL Server Express de verdade (InMemory ou SQ
 - **Conventional Commits** em português, no imperativo e em minúsculas: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`. Exemplo: `feat: adiciona entidade Agendamento com regras de status`.
 - Commits pequenos, um por passo lógico, e cada um compila e passa nos testes.
 - Migrations são commitadas junto com a mudança de modelo.
+
+## Licença
+
+Distribuído sob a licença MIT. Veja o arquivo [LICENSE](LICENSE).
