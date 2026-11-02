@@ -274,6 +274,44 @@ public class RepeticaoServiceTests
     }
 
     [Fact]
+    public async Task Diaria_ComDuracaoDeDoisDias_LancaAplicacaoExceptionENaoSalva()
+    {
+        var original = Semear(new DateTime(2026, 11, 10, 8, 0, 0), duracaoMinutos: 2 * 24 * 60);
+        var request = new RepetirRequest(original.Id, FrequenciaRepeticao.Diaria, new DateTime(2026, 11, 14));
+
+        var excecao = await Assert.ThrowsAsync<AplicacaoException>(() => _servico.RepetirAsync(request));
+        await Assert.ThrowsAsync<AplicacaoException>(() => _servico.PrevisualizarAsync(request));
+
+        Assert.Contains("as cópias se sobreporiam", excecao.Message);
+        Assert.Equal(0, _repositorio.Gravacoes);
+        Assert.Single(_repositorio.Itens);
+        Assert.Null(original.SerieId);
+    }
+
+    [Fact]
+    public async Task Diaria_ComDuracaoDeExatamente24h_EhAceitaPoisAsCopiasSoEncostam()
+    {
+        var original = Semear(new DateTime(2026, 11, 10, 8, 0, 0), duracaoMinutos: 24 * 60);
+
+        var resultado = await _servico.RepetirAsync(
+            new RepetirRequest(original.Id, FrequenciaRepeticao.Diaria, new DateTime(2026, 11, 12)));
+
+        Assert.Equal(2, resultado.Copias.Count);
+        Assert.Equal(original.Fim, resultado.Copias[0].Agendamento.Inicio);
+    }
+
+    [Fact]
+    public async Task Mensal_PartindoDe31DeJaneiroComDuracaoMaiorQue28Dias_LancaAplicacaoException()
+    {
+        var original = Semear(new DateTime(2026, 1, 31, 8, 0, 0), duracaoMinutos: 30 * 24 * 60);
+        var request = new RepetirRequest(original.Id, FrequenciaRepeticao.Mensal, new DateTime(2026, 4, 30));
+
+        await Assert.ThrowsAsync<AplicacaoException>(() => _servico.RepetirAsync(request));
+        await Assert.ThrowsAsync<AplicacaoException>(() => _servico.PrevisualizarAsync(request));
+        Assert.Equal(0, _repositorio.Gravacoes);
+    }
+
+    [Fact]
     public async Task Repetir_Inexistente_LancaAgendamentoNaoEncontrado()
     {
         await Assert.ThrowsAsync<AgendamentoNaoEncontradoException>(() => _servico.RepetirAsync(

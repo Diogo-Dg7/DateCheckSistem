@@ -77,6 +77,8 @@ public sealed class RepeticaoService : IRepeticaoService
         if (copias.Count == 0)
             throw new AplicacaoException("A data de fim não permite gerar nenhuma cópia.");
 
+        GarantirQueCopiasNaoSeSobrepoem(original, copias);
+
         var agora = _relogio.GetLocalNow().DateTime;
         var geradas = new List<CopiaGerada>(copias.Count);
         foreach (var copia in copias)
@@ -87,6 +89,22 @@ public sealed class RepeticaoService : IRepeticaoService
         }
 
         return (original, copias, new ResultadoRepeticao(serieId, geradas));
+    }
+
+    /// <summary>
+    /// Confere os pares vizinhos (original, 1ª cópia, 2ª cópia...). Bordas encostadas (fim == próximo início) são permitidas.
+    /// </summary>
+    private static void GarantirQueCopiasNaoSeSobrepoem(Agendamento original, IReadOnlyList<Agendamento> copias)
+    {
+        var anterior = original;
+        foreach (var copia in copias)
+        {
+            if (copia.Inicio < anterior.Fim)
+                throw new AplicacaoException(
+                    "A duração do agendamento é maior que o intervalo da repetição; as cópias se sobreporiam.");
+
+            anterior = copia;
+        }
     }
 
     /// <summary>
