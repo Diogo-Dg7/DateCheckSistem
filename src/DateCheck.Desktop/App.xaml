@@ -1,9 +1,7 @@
 ﻿<Application x:Class="DateCheck.Desktop.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:DateCheck.Desktop"
-             StartupUri="MainWindow.xaml">
+             ThemeMode="Light">
     <Application.Resources>
-         
     </Application.Resources>
 </Application>
