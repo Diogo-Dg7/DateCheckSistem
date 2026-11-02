@@ -58,6 +58,12 @@ public class Agendamento
         Status = StatusAgendamento.Cancelado;
     }
 
+    /// <summary>Devolve um agendamento concluído ou cancelado ao estado pendente.</summary>
+    public void Reabrir()
+    {
+        Status = StatusAgendamento.Pendente;
+    }
+
     public void AlterarDetalhes(string titulo, string? descricao)
     {
         GarantirPendente("alterar");
