@@ -39,6 +39,15 @@ Infrastructure → Application → Domain
 - Tela Hoje atualiza a cada 30 s (`TimeProvider.CreateTimer`, só enquanto ativa) para o "próximo" e os "atrasados" acompanharem o relógio. Clicar num dia do calendário abre a tela Hoje naquele dia.
 - Testes dos ViewModels: `tests/DateCheck.Desktop.Tests` (repositório em memória, `FakeTimeProvider`, diálogos falsos). Para testar com um banco de capturas/demonstração, sobrescreva a connection string com a variável de ambiente `ConnectionStrings__DateCheckDb`.
 
+## Recursos de desktop (fase 6)
+- **Instância única** (`InstanciaUnica`): `Mutex` nomeado (`Local\DateCheckSistem.Instancia`) adquirido no início do `OnStartup`, antes do Host e do banco, e guardado em campo (variável local seria coletada e soltaria a trava). A segunda execução chama `AllowSetForegroundWindow`, avisa a primeira por um `EventWaitHandle` e encerra; a primeira restaura e ativa a janela.
+- **Bandeja** (`IconeDaBandeja`, Hardcodet.NotifyIcon.Wpf): criada antes do banco, com balão "Iniciando…". Menu: Abrir, Iniciar com o Windows (marcável), Sair; duplo clique abre. `ShutdownMode = OnExplicitShutdown`: fechar a janela só a esconde (`ControleDaJanela`); só `Sair` encerra. `SessionEnding` libera o fechamento real (senão o app bloquearia o desligamento do Windows).
+- **Iniciar com o Windows**: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, valor `DateCheckSistem` com o caminho entre aspas. O registro é a fonte da verdade (nada de cópia em arquivo/preferência); o caminho é reescrito a cada abertura se a opção estiver ligada. Acesso ao registro atrás de `IRegistroDeInicializacao`.
+- **Toasts**: `AppNotificationManager` do Windows App SDK (`Microsoft.WindowsAppSDK.Foundation`), recomendação atual da Microsoft para WPF não empacotado; `Microsoft.Toolkit.Uwp.Notifications` está parado desde 2022 e o `CommunityToolkit.WinUI.Notifications` está marcado como legado. Exige `RuntimeIdentifier win-x64`, `WindowsPackageType=None` e `WindowsAppSDKSelfContained=true` no Desktop **e no projeto de testes** (herdado). Envio atrás de `INotificador`; clique no toast abre a tela Hoje; ao sair, `RemoveAllAsync` + `Unregister`.
+- **Regra de notificação** (`NotificacaoService`, `BackgroundService` com `PeriodicTimer(TimeProvider)` a cada 30 s): só pendentes cujo início está entre agora e agora + X min; nunca os que já começaram (ex.: volta da suspensão); um aviso por par (Id, Início) (reagendar avisa de novo; cancelar/reabrir não repete); falha do toast não marca como avisado.
+- **Preferências**: `%LOCALAPPDATA%\DateCheck\preferencias.json` (`minutosAntes`, padrão 10, 0..1440); arquivo ausente/corrompido volta ao padrão; editável em "Configurações".
+- **Ícone**: `src/DateCheck.Desktop/Recursos/app.ico`, gerado por `tools/icone/gerar-icone.ps1`.
+
 ## Banco
 - Connection string em `appsettings.json`: `Server=.\SQLEXPRESS;Database=DateCheckDb;Trusted_Connection=True;TrustServerCertificate=True;`
 - `AddDbContextFactory<AppDbContext>`; cada operação cria/descarta seu contexto. Nunca manter DbContext vivo.

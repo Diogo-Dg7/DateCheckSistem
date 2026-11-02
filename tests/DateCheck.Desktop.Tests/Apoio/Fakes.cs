@@ -1,5 +1,8 @@
 using System.Reflection;
+using DateCheck.Application.Dtos;
 using DateCheck.Application.Interfaces;
+using DateCheck.Desktop.Configuracoes;
+using DateCheck.Desktop.Notificacoes;
 using DateCheck.Desktop.Navegacao;
 using DateCheck.Desktop.Servicos;
 using DateCheck.Domain.Entidades;
@@ -24,6 +27,10 @@ public sealed class FakeDialogService : IDialogService
 
     public bool ResultadoDoFormulario { get; set; }
 
+    public int ConfiguracoesAbertas { get; private set; }
+
+    public bool ResultadoDasConfiguracoes { get; set; }
+
     public DateTime? DataEscolhida { get; set; }
 
     public void MostrarErro(string mensagem) => Erros.Add(mensagem);
@@ -42,6 +49,12 @@ public sealed class FakeDialogService : IDialogService
     {
         FormulariosAbertos.Add((agendamentoId, diaSugerido));
         return ResultadoDoFormulario;
+    }
+
+    public bool AbrirConfiguracoes()
+    {
+        ConfiguracoesAbertas++;
+        return ResultadoDasConfiguracoes;
     }
 
     public DateTime? PedirDataHora(string titulo, string rotulo, DateTime inicial)
@@ -130,5 +143,43 @@ public sealed class FakeAgendamentoRepository : IAgendamentoRepository
     {
         IdProperty.SetValue(agendamento, _proximoId++);
         _itens.Add(agendamento);
+    }
+}
+
+/// <summary>Registra as notificações pedidas; pode ser configurado para falhar.</summary>
+public sealed class FakeNotificador : INotificador
+{
+    public List<(AgendamentoDto Agendamento, int MinutosRestantes)> Notificacoes { get; } = [];
+
+    public int Tentativas { get; private set; }
+
+    /// <summary>Quantas tentativas seguintes devem lançar exceção.</summary>
+    public int FalhasPendentes { get; set; }
+
+    public IEnumerable<string> Titulos => Notificacoes.Select(n => n.Agendamento.Titulo);
+
+    public void Notificar(AgendamentoDto agendamento, int minutosRestantes)
+    {
+        Tentativas++;
+        if (FalhasPendentes > 0)
+        {
+            FalhasPendentes--;
+            throw new InvalidOperationException("Falha ao exibir o toast.");
+        }
+
+        Notificacoes.Add((agendamento, minutosRestantes));
+    }
+}
+
+public sealed class FakePreferenciasService : IPreferenciasService
+{
+    public Preferencias Atual { get; private set; } = new();
+
+    public event Action? Alterado;
+
+    public void Salvar(Preferencias preferencias)
+    {
+        Atual = preferencias;
+        Alterado?.Invoke();
     }
 }

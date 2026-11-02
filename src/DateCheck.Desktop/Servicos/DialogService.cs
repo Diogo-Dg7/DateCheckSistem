@@ -38,6 +38,14 @@ public sealed class DialogService : IDialogService
         return janela.ShowDialog() == true;
     }
 
+    public bool AbrirConfiguracoes()
+    {
+        var viewModel = _services.GetRequiredService<ConfiguracoesViewModel>();
+
+        var janela = new ConfiguracoesWindow(viewModel) { Owner = Dono() };
+        return janela.ShowDialog() == true;
+    }
+
     public DateTime? PedirDataHora(string titulo, string rotulo, DateTime inicial)
     {
         var viewModel = new DataHoraViewModel(this, titulo, rotulo, inicial);

@@ -19,6 +19,9 @@ public interface IDialogService
     /// </summary>
     bool AbrirFormulario(int? agendamentoId, DateTime? diaSugerido = null);
 
+    /// <summary>Abre a janela de configurações; retorna true se o usuário salvou.</summary>
+    bool AbrirConfiguracoes();
+
     /// <summary>Pede uma data e hora; retorna nulo se o usuário cancelar.</summary>
     DateTime? PedirDataHora(string titulo, string rotulo, DateTime inicial);
 }
