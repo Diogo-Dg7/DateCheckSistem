@@ -32,6 +32,9 @@
                         Style="{StaticResource BotaoPequeno}" />
                 <Button Content="Calendário" Command="{Binding IrParaCalendarioCommand}"
                         Style="{StaticResource BotaoPequeno}" Margin="12,0,0,0" />
+                <Button Content="+ Novo compromisso" Command="{Binding NovoCommand}"
+                        Style="{StaticResource BotaoPequeno}" Margin="12,0,0,0"
+                        Background="{StaticResource Destaque}" Foreground="White" />
             </StackPanel>
         </Grid>
 
@@ -111,7 +114,7 @@
                                 </StackPanel>
 
                                 <WrapPanel Grid.Column="2" Margin="0,10,10,10" VerticalAlignment="Center"
-                                           MaxWidth="260" HorizontalAlignment="Right">
+                                           MaxWidth="350" HorizontalAlignment="Right">
                                     <Button Content="Concluir" Style="{StaticResource BotaoPequeno}"
                                             Command="{Binding DataContext.ConcluirCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
@@ -120,6 +123,13 @@
                                             Command="{Binding DataContext.CancelarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
                                             Visibility="{Binding PodeCancelar, Converter={StaticResource BoolParaVisibilidade}}" />
+                                    <Button Content="Editar" Style="{StaticResource BotaoPequeno}"
+                                            Command="{Binding DataContext.EditarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Visibility="{Binding PodeEditar, Converter={StaticResource BoolParaVisibilidade}}" />
+                                    <Button Content="Duplicar" Style="{StaticResource BotaoPequeno}"
+                                            Command="{Binding DataContext.DuplicarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" />
                                     <Button Content="Reabrir" Style="{StaticResource BotaoPequeno}"
                                             Command="{Binding DataContext.ReabrirCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"

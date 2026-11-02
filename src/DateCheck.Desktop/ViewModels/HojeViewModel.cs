@@ -15,6 +15,8 @@ public sealed partial class HojeViewModel : ViewModelBase, ITela, IDisposable
     internal static readonly TimeSpan IntervaloDeAtualizacao = TimeSpan.FromSeconds(30);
 
     private readonly IAgendamentoService _agendamentos;
+    private readonly IConflitoService _conflitos;
+    private readonly IDuplicacaoService _duplicacao;
     private readonly INavegacao _navegacao;
     private readonly TimeProvider _relogio;
 
@@ -24,11 +26,15 @@ public sealed partial class HojeViewModel : ViewModelBase, ITela, IDisposable
 
     public HojeViewModel(
         IAgendamentoService agendamentos,
+        IConflitoService conflitos,
+        IDuplicacaoService duplicacao,
         INavegacao navegacao,
         IDialogService dialogos,
         TimeProvider relogio) : base(dialogos)
     {
         _agendamentos = agendamentos;
+        _conflitos = conflitos;
+        _duplicacao = duplicacao;
         _navegacao = navegacao;
         _relogio = relogio;
         _dia = Hoje;
@@ -128,6 +134,53 @@ public sealed partial class HojeViewModel : ViewModelBase, ITela, IDisposable
     [RelayCommand]
     private Task ReabrirAsync(AgendamentoItemViewModel? item) =>
         item is null ? Task.CompletedTask : AlterarEAtualizarAsync(() => _agendamentos.ReabrirAsync(item.Id));
+
+    [RelayCommand]
+    private async Task NovoAsync()
+    {
+        if (Dialogos.AbrirFormulario(null, Dia))
+            await RecarregarAsync();
+    }
+
+    [RelayCommand]
+    private async Task EditarAsync(AgendamentoItemViewModel? item)
+    {
+        if (item is not null && Dialogos.AbrirFormulario(item.Id))
+            await RecarregarAsync();
+    }
+
+    /// <summary>Copia o compromisso para outra data/hora, mantendo título, descrição e duração.</summary>
+    [RelayCommand]
+    private async Task DuplicarAsync(AgendamentoItemViewModel? item)
+    {
+        if (item is null)
+            return;
+
+        var novoInicio = Dialogos.PedirDataHora(
+            "Duplicar compromisso",
+            $"Nova data e hora de início para a cópia de \"{item.Titulo}\":",
+            item.Dto.Inicio.AddDays(1));
+        if (novoInicio is not { } inicio)
+            return;
+
+        var duplicou = false;
+        await ExecutarAsync(async () =>
+        {
+            var duracao = item.Dto.Fim - item.Dto.Inicio;
+            var conflitos = await _conflitos.BuscarConflitosAsync(inicio, inicio + duracao);
+            if (conflitos.Count > 0 && !Dialogos.Confirmar("Conflito de horários", MensagemDeConflitos.Montar(conflitos)))
+                return;
+
+            await _duplicacao.DuplicarAsync(item.Id, inicio);
+            duplicou = true;
+        });
+
+        // Mostra o dia onde a cópia caiu, para o usuário vê-la.
+        if (duplicou && inicio.Date != Dia)
+            DefinirDia(inicio);
+
+        await RecarregarAsync();
+    }
 
     private Task MudarDiaAsync(DateTime dia)
     {
