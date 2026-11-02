@@ -1,12 +1,40 @@
 ﻿<Window x:Class="DateCheck.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:DateCheck.Desktop.ViewModels"
+        xmlns:views="clr-namespace:DateCheck.Desktop.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:DateCheck.Desktop"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        Title="DateCheck" Width="1050" Height="720" MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <!-- Cada ViewModel tem a sua View; a navegação só troca o conteúdo atual. -->
+        <DataTemplate DataType="{x:Type vm:HojeViewModel}">
+            <views:HojeView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CalendarioViewModel}">
+            <views:CalendarioView />
+        </DataTemplate>
+    </Window.Resources>
 
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#F3F4F6" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="24,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="DateCheck" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"
+                           Foreground="{StaticResource Destaque}" Margin="0,0,24,0" />
+                <Button Content="Hoje" Command="{Binding IrParaHojeCommand}" Style="{StaticResource BotaoPequeno}" />
+                <Button Content="Calendário" Command="{Binding IrParaCalendarioCommand}"
+                        Style="{StaticResource BotaoPequeno}" />
+            </StackPanel>
+        </Border>
+
+        <ContentControl Grid.Row="1" Content="{Binding Navegacao.Atual}" />
     </Grid>
 </Window>

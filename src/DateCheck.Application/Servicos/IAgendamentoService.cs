@@ -23,6 +23,10 @@ public interface IAgendamentoService
     Task<IReadOnlyList<AgendamentoDto>> ListarDoDiaAsync(
         DateTime? dia = null, CancellationToken cancellationToken = default);
 
+    /// <summary>Agendamentos que se sobrepõem a [<paramref name="inicio"/>, <paramref name="fim"/>), em ordem de início.</summary>
+    Task<IReadOnlyList<AgendamentoDto>> ListarPeriodoAsync(
+        DateTime inicio, DateTime fim, CancellationToken cancellationToken = default);
+
     /// <summary>Agendamentos que tocam o mês informado, em ordem de início.</summary>
     Task<IReadOnlyList<AgendamentoDto>> ListarDoMesAsync(
         int ano, int mes, CancellationToken cancellationToken = default);

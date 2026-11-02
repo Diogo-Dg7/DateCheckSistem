@@ -32,6 +32,13 @@ Infrastructure → Application → Domain
 - Serviço **Repetir**: gera cópias diárias, semanais ou mensais até uma data de fim OBRIGATÓRIA (máximo 1 ano), todas com o mesmo `SerieId`. Mensal no dia 31 cai no último dia dos meses curtos. Retorna os conflitos encontrados por cópia.
 - Usar `TimeProvider` (injetado) em vez de `DateTime.Now`.
 
+## Desktop (fase 5)
+- `App.xaml.cs` (composition root): `Host.CreateApplicationBuilder` com ContentRoot = `AppContext.BaseDirectory` (ao iniciar com o Windows o diretório atual não é o do app), cultura pt-BR (inclui `FrameworkElement.LanguageProperty`), migrations antes de abrir a janela (falha -> diálogo "tentar novamente / sair") e tratamento global de exceções da UI. Sem `StartupUri`; a `MainWindow` vem do container.
+- Navegação: `NavegacaoService` (`INavegacao`) troca o ViewModel atual; `MainWindow` usa `DataTemplate` por ViewModel (Hoje, Calendário). Telas implementam `ITela` (`AtivarAsync`/`Desativar`).
+- Diálogos só via `IDialogService` (erro, aviso, confirmar, formulário, data/hora): permite testar ViewModels sem janelas. Mensagens de `DomainException`/`AplicacaoException` são exibidas por `ViewModelBase.ExecutarAsync`.
+- Tela Hoje atualiza a cada 30 s (`TimeProvider.CreateTimer`, só enquanto ativa) para o "próximo" e os "atrasados" acompanharem o relógio. Clicar num dia do calendário abre a tela Hoje naquele dia.
+- Testes dos ViewModels: `tests/DateCheck.Desktop.Tests` (repositório em memória, `FakeTimeProvider`, diálogos falsos). Para testar com um banco de capturas/demonstração, sobrescreva a connection string com a variável de ambiente `ConnectionStrings__DateCheckDb`.
+
 ## Banco
 - Connection string em `appsettings.json`: `Server=.\SQLEXPRESS;Database=DateCheckDb;Trusted_Connection=True;TrustServerCertificate=True;`
 - `AddDbContextFactory<AppDbContext>`; cada operação cria/descarta seu contexto. Nunca manter DbContext vivo.
@@ -48,10 +55,13 @@ Infrastructure → Application → Domain
 - Commits pequenos, um por passo lógico que compila, **Conventional Commits em português, imperativo, minúsculo** (`feat`, `fix`, `test`, `refactor`, `docs`, `chore`). Ex.: `feat: adiciona entidade Agendamento com regras de status`.
 - **NÃO fazer push, merge nem abrir PR sem confirmação do usuário.** Ao fim de cada fase, mostrar resumo e `git log --oneline` da branch e aguardar aprovação.
 - Nunca commitar senhas ou segredos (usar User Secrets).
+- Validação commit a commit (`git rebase --exec`) deve rodar num **worktree separado com build limpo** (sem `bin/obj`): `git worktree add ../dc-validacao <commit>`, `dotnet build && dotnet test` e `git worktree remove --force ../dc-validacao`. Numa pasta com `obj` reaproveitado, o WPF gera falsos "FALHOU" (`CS2001`, arquivos `.g.cs` ausentes). Se um commit falhar no `--exec`, reconfirme num worktree limpo antes de concluir que é erro de código.
 - Fim de linha: `.gitattributes` com `* text=auto` (sem `core.autocrlf` local).
 
 ## Fluxo de trabalho
 Trabalhar por fases e parar ao fim de cada uma: 1 estrutura-inicial, 2 dominio (+testes), 3 aplicacao (+testes), 4 infraestrutura (+migration inicial), 5 telas, 6 recursos-desktop, 7 docs/readme (+ tag `v0.1.0`). Se algo for ambíguo ou tecnicamente questionável, perguntar antes de implementar.
+
+Capturas de tela para o README: `tools/capturas/capturar.ps1` (instruções no cabeçalho do script; usa um banco de demonstração, nunca o real).
 
 ## Comandos
 ```powershell
