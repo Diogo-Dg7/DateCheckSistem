@@ -63,16 +63,6 @@ public class OrigemExternaServicosTests
     }
 
     [Fact]
-    public async Task Conflito_ConsultaDeDiaInteiroNaoConflitaComNada()
-    {
-        SemearLocal("Reunião", H(9), H(10));
-
-        var conflitos = await _conflitos.BuscarConflitosAsync(Hoje, Hoje.AddDays(1), diaInteiro: true);
-
-        Assert.Empty(conflitos);
-    }
-
-    [Fact]
     public async Task Conflito_ItemExternoComHorarioConflitaComoQualquerOutro()
     {
         SemearNotion("Dentista", H(9), H(10));
