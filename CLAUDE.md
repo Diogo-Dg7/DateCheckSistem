@@ -25,7 +25,7 @@ Infrastructure → Application → Domain
 - `StatusAgendamento`: Pendente, Concluido, Cancelado. Datas em horário local (`DateTime`).
 - Sem Data Annotations nas entidades; mapeamento só por `IEntityTypeConfiguration<T>`.
 - **Sem recorrência salva.** Cada agendamento é independente (horário e status próprios). Repetir é só um atalho que cria cópias; `SerieId` apenas agrupa cópias criadas juntas. `CopiarPara` mantém título, descrição e duração, e a cópia é sempre Pendente.
-- Conflito: `inicioA < fimB && inicioB < fimA`. Ignora cancelados, itens de dia inteiro (dos dois lados) e o próprio agendamento na edição. Não bloqueia: retorna a lista e a tela pergunta se salva mesmo assim.
+- Conflito: `inicioA < fimB && inicioB < fimA`. Ignora cancelados, itens de dia inteiro e o próprio agendamento na edição (a consulta é sempre com horário; quando o formulário criar dia inteiro, a consulta de dia inteiro também deve ser ignorada). Não bloqueia: retorna a lista e a tela pergunta se salva mesmo assim.
 
 ## Origem externa (v0.2.0, fase 1)
 - `Agendamento` ganha `Origem` (`OrigemAgendamento`: Local, Notion), `IdExterno`, `UrlExterna` e `DiaInteiro`. `IdExterno` é obrigatório se a origem não é Local (e nunca existe em itens locais, que não têm como defini-lo). Itens externos nascem só por `Agendamento.Importar(...)`.
@@ -33,8 +33,8 @@ Infrastructure → Application → Domain
 - **Dia inteiro:** `Inicio` = 00:00 do primeiro dia e `Fim` = 00:00 do dia seguinte ao último (`Fim > Inicio` continua valendo; ambos precisam ser meia-noite). Nunca é "próximo" nem "atrasado", não conflita, não é notificado, vem antes dos demais na ordenação (Hoje e Calendário) e a tela mostra "Dia inteiro" no lugar do horário.
 - Duplicar e Repetir recusam item externo com `AplicacaoException`.
 - Repositório: `ListarPorOrigemAsync` e `SincronizarAsync(origem, inicio, fim, itensRecebidos)`. A janela é por `Inicio` em [inicio, fim) (o fim é exclusivo). O sync insere/atualiza/remove num único `SaveChanges` (tudo ou nada), casa por `(Origem, IdExterno)` entre TODOS os itens da origem (um item movido de fora para dentro da janela é atualizado, não duplicado), só remove itens da janela que não vieram e **nunca toca em itens locais** (recusa `Local`, itens de outra origem e `IdExterno` repetido com `ArgumentException`). Quem chama deve passar a lista COMPLETA da janela; numa consulta que falhou no meio, não chame o sync.
-- Banco: índice único **filtrado** `IX_Agendamentos_Origem_IdExterno` (`WHERE IdExterno IS NOT NULL`); a migration `IntegracoesExternas` deixa os registros antigos como `Origem = Local`, `DiaInteiro = 0` (há teste que aplica só a `Inicial`, grava linhas antigas e migra).
-- Desktop: itens externos mostram o selo ("Notion") nas telas Hoje e Calendário; Concluir/Cancelar/Editar/Duplicar/Reabrir ficam ocultos e aparece "Abrir no Notion". O link passa por `IAbridorDeLinks`, que só aceita http/https (a URL vem de fora; nunca entregar caminho, comando ou outro protocolo ao shell).
+- Banco: índice único **filtrado** `IX_Agendamentos_Origem_IdExterno` (`WHERE IdExterno IS NOT NULL`); a migration `IntegracoesExternas` deixa os registros antigos como `Origem = Local`, `DiaInteiro = 0` (há teste que aplica só a `Inicial`, grava linhas antigas e migra). As colunas novas têm DEFAULT no banco, de propósito: uma versão anterior instalada usa o mesmo `DateCheckDb` e seu INSERT (sem as colunas novas) precisa continuar funcionando; há teste disso. Não remova esses defaults.
+- Desktop: itens externos mostram o selo "Notion" por extenso na tela Hoje e só um "N" (com tooltip "Notion") nos chips do Calendário; Concluir/Cancelar/Editar/Duplicar/Reabrir ficam ocultos e aparece "Abrir no Notion". O link passa por `IAbridorDeLinks`, que só aceita http/https (a URL vem de fora; nunca entregar caminho, comando ou outro protocolo ao shell).
 
 ## Application (fase 3)
 - Serviço **Duplicar**: copia um agendamento para outra data/horário.

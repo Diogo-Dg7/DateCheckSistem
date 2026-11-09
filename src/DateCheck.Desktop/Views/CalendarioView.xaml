@@ -143,9 +143,10 @@
                                                 <DockPanel>
                                                     <Border DockPanel.Dock="Left" CornerRadius="2" Padding="3,0" Margin="0,0,4,0"
                                                             Background="#FFFFFF" VerticalAlignment="Center"
+                                                            ToolTip="{Binding Selo}"
                                                             Visibility="{Binding TemSelo, Converter={StaticResource BoolParaVisibilidade}}">
-                                                        <TextBlock Text="{Binding Selo}" Foreground="#374151" FontSize="9"
-                                                                   FontWeight="SemiBold" />
+                                                        <TextBlock Text="{Binding SeloCurto}" Foreground="#374151" FontSize="9"
+                                                                   FontWeight="Bold" />
                                                     </Border>
                                                     <TextBlock Text="{Binding Texto}" Foreground="White" FontSize="11"
                                                                TextTrimming="CharacterEllipsis" />

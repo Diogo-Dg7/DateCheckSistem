@@ -192,7 +192,9 @@ public class OrigemExternaTelasTests
         var dentista = dia.Chips.Single(c => c.Texto.Contains("Dentista"));
         Assert.False(reuniao.TemSelo);
         Assert.True(dentista.TemSelo);
-        Assert.Equal("Notion", dentista.Selo);
+        Assert.Equal("Notion", dentista.Selo); // tooltip
+        Assert.Equal("N", dentista.SeloCurto); // o que aparece no chip
+        Assert.Equal(string.Empty, reuniao.SeloCurto);
         Assert.Equal("15:00 Dentista", dentista.Texto);
     }
 
@@ -211,6 +213,45 @@ public class OrigemExternaTelasTests
         Assert.Equal(["Viagem", "00:00 Meia-noite"], dia1.Chips.Select(c => c.Texto));
         Assert.Equal(["Viagem"], dia2.Chips.Select(c => c.Texto));
         Assert.Empty(dia3.Chips);
+    }
+
+    [Fact]
+    public async Task Calendario_DiaInteiroDeVariosDiasApareceEmTodosOsDiasAtravessandoAViradaDeSemana()
+    {
+        // 04/11 (qua) a 09/11 (seg): cruza o domingo 08/11, que abre uma nova linha da grade.
+        _ambiente.SemearDiaInteiro("Congresso", new DateTime(2026, 11, 4), new DateTime(2026, 11, 9));
+        var vm = _ambiente.CriarCalendario();
+
+        await vm.AtivarAsync();
+
+        var comCongresso = vm.Dias.Where(d => d.Chips.Any(c => c.Texto == "Congresso")).Select(d => d.Data.Day);
+        Assert.Equal([4, 5, 6, 7, 8, 9], comCongresso);
+    }
+
+    [Fact]
+    public async Task Hoje_DiaInteiroDeVariosDiasApareceEmCadaDiaEsomeNoSeguinteAoUltimo()
+    {
+        _ambiente.SemearDiaInteiro("Viagem", Hoje.AddDays(-1), Hoje.AddDays(1)); // ontem, hoje e amanhã
+        var vm = _ambiente.CriarHoje();
+        await vm.AtivarAsync();
+
+        var visto = new List<(DateTime Dia, string? Horario)>();
+        foreach (var dia in new[] { Hoje.AddDays(-2), Hoje.AddDays(-1), Hoje, Hoje.AddDays(1), Hoje.AddDays(2) })
+        {
+            vm.DefinirDia(dia);
+            await vm.RecarregarAsync();
+            visto.Add((dia, vm.Itens.SingleOrDefault()?.Horario));
+        }
+
+        Assert.Equal(
+            [
+                (Hoje.AddDays(-2), (string?)null),
+                (Hoje.AddDays(-1), "Dia inteiro (01/11 – 03/11)"),
+                (Hoje, "Dia inteiro (01/11 – 03/11)"),
+                (Hoje.AddDays(1), "Dia inteiro (01/11 – 03/11)"),
+                (Hoje.AddDays(2), null)
+            ],
+            visto);
     }
 
     // ---------- notificações ----------
