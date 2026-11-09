@@ -11,7 +11,7 @@ namespace DateCheck.Desktop.Servicos;
 /// </summary>
 public sealed class IconeDaBandeja : IDisposable
 {
-    private const string Nome = "DateCheck";
+    private static readonly string Nome = AmbienteDeExecucao.Atual.TituloDoApp;
 
     private readonly IControleDaJanela _janela;
     private readonly IInicioComWindowsService _inicioComWindows;

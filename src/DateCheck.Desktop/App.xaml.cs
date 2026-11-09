@@ -20,7 +20,7 @@ namespace DateCheck.Desktop;
 // Este arquivo é o composition root: o único lugar do Desktop que referencia tipos da Infrastructure.
 public partial class App : System.Windows.Application
 {
-    private const string TituloApp = "DateCheck";
+    private static readonly string TituloApp = AmbienteDeExecucao.Atual.TituloDoApp;
 
     private IHost? _host;
 
@@ -38,7 +38,7 @@ public partial class App : System.Windows.Application
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         // Primeiríssimo passo, antes do Host e do banco: se já existe uma instância, avisa a primeira e sai.
-        _instancia = new InstanciaUnica();
+        _instancia = new InstanciaUnica(AmbienteDeExecucao.Atual.NomeDaInstancia);
         if (!_instancia.TentarAssumir())
         {
             _instancia.AvisarInstanciaExistente();
@@ -118,6 +118,12 @@ public partial class App : System.Windows.Application
             ContentRootPath = AppContext.BaseDirectory
         });
 
+        // Em desenvolvimento (DOTNET_ENVIRONMENT=Development) o Host já carrega appsettings.Development.json
+        // (banco DateCheckDb_Dev); a trava abaixo impede, de qualquer jeito, o uso do banco real.
+        var ambiente = AmbienteDeExecucao.Atual;
+        ambiente.GarantirBancoIsolado(builder.Configuration[$"ConnectionStrings:{DateCheck.Infrastructure.Persistencia.ConexaoPadrao.Nome}"]);
+        builder.Services.AddSingleton(ambiente);
+
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -129,13 +135,13 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<IControleDaJanela>(sp => sp.GetRequiredService<ControleDaJanela>());
         builder.Services.AddSingleton<IconeDaBandeja>();
 
-        builder.Services.AddSingleton<IRegistroDeInicializacao, RegistroDeInicializacaoDoWindows>();
+        builder.Services.AddSingleton(_ => ambiente.CriarRegistroDeInicializacao());
         builder.Services.AddSingleton(sp => new InicioComWindowsService(
             sp.GetRequiredService<IRegistroDeInicializacao>(), CaminhoDoExecutavel));
         builder.Services.AddSingleton<IInicioComWindowsService>(sp => sp.GetRequiredService<InicioComWindowsService>());
 
         builder.Services.AddSingleton<IArmazenamentoDePreferencias>(
-            _ => new ArmazenamentoJsonDePreferencias(ArmazenamentoJsonDePreferencias.CaminhoPadrao()));
+            _ => new ArmazenamentoJsonDePreferencias(ArmazenamentoJsonDePreferencias.CaminhoPadrao(ambiente.PastaDeDados)));
         builder.Services.AddSingleton<IPreferenciasService, PreferenciasService>();
 
         builder.Services.AddSingleton<INotificador, AppNotificacaoNotificador>();

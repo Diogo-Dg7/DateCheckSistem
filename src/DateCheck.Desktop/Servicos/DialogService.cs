@@ -7,7 +7,7 @@ namespace DateCheck.Desktop.Servicos;
 
 public sealed class DialogService : IDialogService
 {
-    private const string Titulo = "DateCheck";
+    private static readonly string Titulo = AmbienteDeExecucao.Atual.TituloDoApp;
 
     private readonly IServiceProvider _services;
 
