@@ -4,7 +4,14 @@ using DateCheck.Domain.Enums;
 namespace DateCheck.Desktop.ViewModels;
 
 /// <summary>Um compromisso dentro da célula de um dia (texto curto e cor pelo status).</summary>
-public sealed record ChipCalendario(string Texto, StatusAgendamento Status);
+/// <param name="Selo">Nome da origem ("Notion") nos itens externos; vazio nos locais. Aparece como tooltip do "N".</param>
+public sealed record ChipCalendario(string Texto, StatusAgendamento Status, string Selo = "")
+{
+    public bool TemSelo => Selo.Length > 0;
+
+    /// <summary>Só a inicial ("N"): o chip é estreito, o nome por extenso fica na tela Hoje.</summary>
+    public string SeloCurto => TemSelo ? Selo[..1] : string.Empty;
+}
 
 public sealed class DiaCalendarioViewModel
 {
@@ -16,7 +23,7 @@ public sealed class DiaCalendarioViewModel
         Total = agendamentos.Count;
         Chips = agendamentos
             .Take(GradeDoMes.MaximoPorDia)
-            .Select(a => new ChipCalendario(MontarTexto(a, Data), a.Status))
+            .Select(a => new ChipCalendario(MontarTexto(a, Data), a.Status, a.EhExterno ? a.Origem.Nome() : string.Empty))
             .ToList();
     }
 
@@ -39,7 +46,9 @@ public sealed class DiaCalendarioViewModel
     public string ExcedenteTexto => $"+{Excedente} mais";
 
     private static string MontarTexto(AgendamentoDto agendamento, DateTime dia) =>
-        agendamento.Inicio.Date == dia
-            ? $"{agendamento.Inicio:HH:mm} {agendamento.Titulo}"
-            : $"↳ {agendamento.Titulo}"; // continuação de um agendamento que começou antes
+        agendamento.DiaInteiro
+            ? agendamento.Titulo // sem horário: a célula já diz o dia
+            : agendamento.Inicio.Date == dia
+                ? $"{agendamento.Inicio:HH:mm} {agendamento.Titulo}"
+                : $"↳ {agendamento.Titulo}"; // continuação de um agendamento que começou antes
 }

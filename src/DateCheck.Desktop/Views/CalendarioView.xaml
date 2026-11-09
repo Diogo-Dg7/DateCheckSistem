@@ -140,8 +140,17 @@
                                         <DataTemplate DataType="{x:Type vm:ChipCalendario}">
                                             <Border CornerRadius="3" Padding="4,1" Margin="0,0,0,2"
                                                     Background="{Binding Status, Converter={StaticResource StatusParaCor}}">
-                                                <TextBlock Text="{Binding Texto}" Foreground="White" FontSize="11"
-                                                           TextTrimming="CharacterEllipsis" />
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Left" CornerRadius="2" Padding="3,0" Margin="0,0,4,0"
+                                                            Background="#FFFFFF" VerticalAlignment="Center"
+                                                            ToolTip="{Binding Selo}"
+                                                            Visibility="{Binding TemSelo, Converter={StaticResource BoolParaVisibilidade}}">
+                                                        <TextBlock Text="{Binding SeloCurto}" Foreground="#374151" FontSize="9"
+                                                                   FontWeight="Bold" />
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Texto}" Foreground="White" FontSize="11"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </DockPanel>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

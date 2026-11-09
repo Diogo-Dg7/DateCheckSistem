@@ -65,15 +65,13 @@ public sealed class AgendamentoService : IAgendamentoService
 
         var proximoId = data == agora.Date
             ? agendamentos
-                .Where(a => a.Status == StatusAgendamento.Pendente && a.Fim > agora)
+                .Where(a => a.Status == StatusAgendamento.Pendente && !a.DiaInteiro && a.Fim > agora)
                 .OrderBy(a => a.Inicio)
                 .Select(a => (int?)a.Id)
                 .FirstOrDefault()
             : null;
 
-        return agendamentos
-            .OrderBy(a => a.Inicio)
-            .ThenBy(a => a.Fim)
+        return Ordenar(agendamentos)
             .Select(a => AgendamentoMapper.ParaDto(a, agora, proximo: a.Id == proximoId))
             .ToList();
     }
@@ -84,9 +82,7 @@ public sealed class AgendamentoService : IAgendamentoService
         var agendamentos = await _repositorio.ListarPorPeriodoAsync(inicio, fim, cancellationToken);
 
         var agora = Agora();
-        return agendamentos
-            .OrderBy(a => a.Inicio)
-            .ThenBy(a => a.Fim)
+        return Ordenar(agendamentos)
             .Select(a => AgendamentoMapper.ParaDto(a, agora))
             .ToList();
     }
@@ -113,6 +109,13 @@ public sealed class AgendamentoService : IAgendamentoService
     private async Task<Agendamento> ObterOuFalharAsync(int id, CancellationToken cancellationToken) =>
         await _repositorio.ObterPorIdAsync(id, cancellationToken)
         ?? throw new AgendamentoNaoEncontradoException(id);
+
+    /// <summary>Dia inteiro primeiro, depois por horário.</summary>
+    private static IEnumerable<Agendamento> Ordenar(IEnumerable<Agendamento> agendamentos) =>
+        agendamentos
+            .OrderByDescending(a => a.DiaInteiro)
+            .ThenBy(a => a.Inicio)
+            .ThenBy(a => a.Fim);
 
     private DateTime Agora() => _relogio.GetLocalNow().DateTime;
 }

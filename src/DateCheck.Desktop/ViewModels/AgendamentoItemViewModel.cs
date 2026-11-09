@@ -41,15 +41,41 @@ public sealed class AgendamentoItemViewModel
 
     public bool TemMarcador => Marcador.Length > 0;
 
-    public string Horario => FormatarHorario(Dto.Inicio, Dto.Fim);
+    public bool DiaInteiro => Dto.DiaInteiro;
 
-    public bool PodeConcluir => Status == StatusAgendamento.Pendente;
+    /// <summary>Itens vindos de fora (Notion) são somente leitura: só a origem os altera.</summary>
+    public bool EhExterno => Dto.EhExterno;
 
-    public bool PodeCancelar => Status == StatusAgendamento.Pendente;
+    /// <summary>Nome da origem para o selo ("Notion"); vazio nos itens locais.</summary>
+    public string Selo => EhExterno ? Dto.Origem.Nome() : string.Empty;
 
-    public bool PodeEditar => Status == StatusAgendamento.Pendente;
+    public bool TemSelo => EhExterno;
 
-    public bool PodeReabrir => Status != StatusAgendamento.Pendente;
+    public string Horario => DiaInteiro ? FormatarDiaInteiro(Dto.Inicio, Dto.Fim) : FormatarHorario(Dto.Inicio, Dto.Fim);
+
+    public bool PodeConcluir => !EhExterno && Status == StatusAgendamento.Pendente;
+
+    public bool PodeCancelar => !EhExterno && Status == StatusAgendamento.Pendente;
+
+    public bool PodeEditar => !EhExterno && Status == StatusAgendamento.Pendente;
+
+    public bool PodeDuplicar => !EhExterno;
+
+    public bool PodeReabrir => !EhExterno && Status != StatusAgendamento.Pendente;
+
+    public bool PodeAbrirNaOrigem => EhExterno && !string.IsNullOrWhiteSpace(Dto.UrlExterna);
+
+    /// <summary>"Abrir no Notion".</summary>
+    public string TextoAbrirNaOrigem => $"Abrir no {Dto.Origem.Nome()}";
+
+    /// <summary>"Dia inteiro", com o intervalo quando ocupa mais de um dia (o fim é o início do dia seguinte ao último).</summary>
+    public static string FormatarDiaInteiro(DateTime inicio, DateTime fim)
+    {
+        var ultimoDia = fim.Date.AddDays(-1);
+        return ultimoDia > inicio.Date
+            ? $"Dia inteiro ({inicio:dd/MM} – {ultimoDia:dd/MM})"
+            : "Dia inteiro";
+    }
 
     public static string FormatarHorario(DateTime inicio, DateTime fim) =>
         inicio.Date == fim.Date

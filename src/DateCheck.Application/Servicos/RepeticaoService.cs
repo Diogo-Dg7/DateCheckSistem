@@ -2,6 +2,7 @@ using DateCheck.Application.Dtos;
 using DateCheck.Application.Excecoes;
 using DateCheck.Application.Interfaces;
 using DateCheck.Domain.Entidades;
+using DateCheck.Domain.Enums;
 
 namespace DateCheck.Application.Servicos;
 
@@ -57,6 +58,10 @@ public sealed class RepeticaoService : IRepeticaoService
 
         var original = await _repositorio.ObterPorIdAsync(request.AgendamentoId, cancellationToken)
             ?? throw new AgendamentoNaoEncontradoException(request.AgendamentoId);
+
+        if (original.EhExterno)
+            throw new AplicacaoException(
+                $"Compromissos do {original.Origem.Nome()} não podem ser repetidos; repita-o lá.");
 
         var dataFim = request.DataFim.Date;
         if (dataFim > original.Inicio.Date.AddYears(1))

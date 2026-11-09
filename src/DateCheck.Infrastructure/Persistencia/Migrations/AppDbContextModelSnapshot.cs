@@ -34,11 +34,21 @@ namespace DateCheck.Infrastructure.Persistencia.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<bool>("DiaInteiro")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("Fim")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("IdExterno")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<DateTime>("Inicio")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("Origem")
+                        .HasColumnType("int");
 
                     b.Property<Guid?>("SerieId")
                         .HasColumnType("uniqueidentifier");
@@ -51,6 +61,10 @@ namespace DateCheck.Infrastructure.Persistencia.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("UrlExterna")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Inicio")
@@ -58,6 +72,11 @@ namespace DateCheck.Infrastructure.Persistencia.Migrations
 
                     b.HasIndex("SerieId")
                         .HasDatabaseName("IX_Agendamentos_SerieId");
+
+                    b.HasIndex("Origem", "IdExterno")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Agendamentos_Origem_IdExterno")
+                        .HasFilter("[IdExterno] IS NOT NULL");
 
                     b.ToTable("Agendamentos", (string)null);
                 });

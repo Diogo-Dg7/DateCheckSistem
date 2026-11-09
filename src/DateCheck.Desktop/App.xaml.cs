@@ -122,6 +122,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddInfrastructure(builder.Configuration);
 
         builder.Services.AddSingleton<IDialogService, DialogService>();
+        builder.Services.AddSingleton<IAbridorDeLinks, AbridorDeLinks>();
 
         // Comportamento de aplicativo: janela/bandeja, início com o Windows, preferências e notificações.
         builder.Services.AddSingleton<ControleDaJanela>();

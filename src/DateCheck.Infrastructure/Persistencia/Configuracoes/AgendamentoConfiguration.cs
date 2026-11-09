@@ -28,7 +28,26 @@ public class AgendamentoConfiguration : IEntityTypeConfiguration<Agendamento>
 
         builder.Property(a => a.SerieId);
 
+        // Os registros anteriores às integrações viram Local, sem dia inteiro (valores padrão da migration).
+        builder.Property(a => a.Origem).IsRequired();
+
+        builder.Property(a => a.IdExterno)
+            .HasMaxLength(Agendamento.TamanhoMaximoIdExterno);
+
+        builder.Property(a => a.UrlExterna)
+            .HasMaxLength(Agendamento.TamanhoMaximoUrlExterna);
+
+        builder.Property(a => a.DiaInteiro).IsRequired();
+
         builder.HasIndex(a => a.Inicio).HasDatabaseName("IX_Agendamentos_Inicio");
         builder.HasIndex(a => a.SerieId).HasDatabaseName("IX_Agendamentos_SerieId");
+
+        // Um item externo só pode existir uma vez por origem; itens locais (IdExterno nulo) ficam fora do índice.
+        builder.HasIndex(a => new { a.Origem, a.IdExterno })
+            .IsUnique()
+            .HasFilter("[IdExterno] IS NOT NULL")
+            .HasDatabaseName("IX_Agendamentos_Origem_IdExterno");
+
+        builder.Ignore(a => a.EhExterno);
     }
 }

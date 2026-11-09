@@ -23,6 +23,7 @@ public sealed class ConflitoService : IConflitoService
 
         return candidatos
             .Where(a => a.Status != StatusAgendamento.Cancelado)
+            .Where(a => !a.DiaInteiro)
             .Where(a => a.Id != ignorarId)
             .Where(a => Conflitam(inicio, fim, a.Inicio, a.Fim))
             .OrderBy(a => a.Inicio)

@@ -87,6 +87,13 @@
                                             </TextBlock.Style>
                                         </TextBlock>
                                         <Border CornerRadius="9" Padding="8,1" Margin="10,2,0,0" VerticalAlignment="Center"
+                                                Background="#E5E7EB"
+                                                ToolTip="Vem de um serviço externo; somente leitura aqui"
+                                                Visibility="{Binding TemSelo, Converter={StaticResource BoolParaVisibilidade}}">
+                                            <TextBlock Text="{Binding Selo}" Foreground="#374151" FontSize="11"
+                                                       FontWeight="SemiBold" />
+                                        </Border>
+                                        <Border CornerRadius="9" Padding="8,1" Margin="10,2,0,0" VerticalAlignment="Center"
                                                 Visibility="{Binding TemMarcador, Converter={StaticResource BoolParaVisibilidade}}">
                                             <Border.Style>
                                                 <Style TargetType="Border">
@@ -129,7 +136,12 @@
                                             Visibility="{Binding PodeEditar, Converter={StaticResource BoolParaVisibilidade}}" />
                                     <Button Content="Duplicar" Style="{StaticResource BotaoPequeno}"
                                             Command="{Binding DataContext.DuplicarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" />
+                                            CommandParameter="{Binding}"
+                                            Visibility="{Binding PodeDuplicar, Converter={StaticResource BoolParaVisibilidade}}" />
+                                    <Button Content="{Binding TextoAbrirNaOrigem}" Style="{StaticResource BotaoPequeno}"
+                                            Command="{Binding DataContext.AbrirNaOrigemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Visibility="{Binding PodeAbrirNaOrigem, Converter={StaticResource BoolParaVisibilidade}}" />
                                     <Button Content="Reabrir" Style="{StaticResource BotaoPequeno}"
                                             Command="{Binding DataContext.ReabrirCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"

@@ -18,6 +18,7 @@ public sealed partial class HojeViewModel : ViewModelBase, ITela, IDisposable
     private readonly IConflitoService _conflitos;
     private readonly IDuplicacaoService _duplicacao;
     private readonly INavegacao _navegacao;
+    private readonly IAbridorDeLinks _abridorDeLinks;
     private readonly TimeProvider _relogio;
 
     private ITimer? _timer;
@@ -29,6 +30,7 @@ public sealed partial class HojeViewModel : ViewModelBase, ITela, IDisposable
         IConflitoService conflitos,
         IDuplicacaoService duplicacao,
         INavegacao navegacao,
+        IAbridorDeLinks abridorDeLinks,
         IDialogService dialogos,
         TimeProvider relogio) : base(dialogos)
     {
@@ -36,6 +38,7 @@ public sealed partial class HojeViewModel : ViewModelBase, ITela, IDisposable
         _conflitos = conflitos;
         _duplicacao = duplicacao;
         _navegacao = navegacao;
+        _abridorDeLinks = abridorDeLinks;
         _relogio = relogio;
         _dia = Hoje;
     }
@@ -180,6 +183,17 @@ public sealed partial class HojeViewModel : ViewModelBase, ITela, IDisposable
             DefinirDia(inicio);
 
         await RecarregarAsync();
+    }
+
+    /// <summary>Abre o item externo (ex.: página do Notion) no navegador padrão.</summary>
+    [RelayCommand]
+    private void AbrirNaOrigem(AgendamentoItemViewModel? item)
+    {
+        if (item is not { PodeAbrirNaOrigem: true })
+            return;
+
+        if (!_abridorDeLinks.Abrir(item.Dto.UrlExterna!))
+            Dialogos.MostrarErro("Não foi possível abrir o link no navegador.");
     }
 
     private Task MudarDiaAsync(DateTime dia)
