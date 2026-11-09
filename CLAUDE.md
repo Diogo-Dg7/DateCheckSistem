@@ -57,6 +57,13 @@ Infrastructure → Application → Domain
 - **Preferências**: `%LOCALAPPDATA%\DateCheck\preferencias.json` (`minutosAntes`, padrão 10, 0..1440); arquivo ausente/corrompido volta ao padrão; editável em "Configurações".
 - **Ícone**: `src/DateCheck.Desktop/Recursos/app.ico`, gerado por `tools/icone/gerar-icone.ps1`.
 
+## Ambiente de desenvolvimento (isolado do app instalado)
+- Com `DOTNET_ENVIRONMENT=Development` (`AmbienteDeExecucao`, lido no início do processo; sem a variável é produção) o app usa: Mutex/evento `DateCheckSistem.Dev`, pasta de dados `%LOCALAPPDATA%\DateCheck-Dev` (preferências e, a partir da v0.2.0, os segredos: **todo caminho de dados novo deve sair de `AmbienteDeExecucao.PastaDeDados`**, nunca de um caminho fixo), banco `DateCheckDb_Dev` (`appsettings.Development.json`) e título "DateCheck (Dev)".
+- **Nunca grava na chave Run** em desenvolvimento: o `IRegistroDeInicializacao` vira `RegistroDeInicializacaoEmMemoria` (nem lê a chave real). Sem isso, rodar a build de `bin\Debug` reescreveria o "Iniciar com o Windows" do app instalado.
+- Trava no composition root: em desenvolvimento, `GarantirBancoIsolado` recusa uma connection string que aponte para `DateCheckDb` (ou sem banco), mesmo sobrescrita por arquivo ou variável de ambiente. O app de desenvolvimento e o instalado podem rodar ao mesmo tempo.
+- Para rodar em desenvolvimento: `$env:DOTNET_ENVIRONMENT = 'Development'` antes de iniciar o exe (o Visual Studio pode definir a variável no perfil de execução). As capturas (`tools/capturas`) continuam usando `ConnectionStrings__DateCheckDb` em produção, com o banco de demonstração.
+- Limite conhecido: a identidade do toast (`AppNotificationManager`) não foi isolada nem verificada; as duas builds podem compartilhar o registro de notificações do Windows.
+
 ## Banco
 - Connection string em `appsettings.json`: `Server=.\SQLEXPRESS;Database=DateCheckDb;Trusted_Connection=True;TrustServerCertificate=True;`
 - `AddDbContextFactory<AppDbContext>`; cada operação cria/descarta seu contexto. Nunca manter DbContext vivo.
