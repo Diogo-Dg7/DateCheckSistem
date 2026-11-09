@@ -68,8 +68,10 @@ public sealed class NotificacaoService : BackgroundService
 
         foreach (var agendamento in candidatos)
         {
-            // Só pendentes que AINDA NÃO começaram e começam dentro da antecedência.
+            // Só pendentes com horário (dia inteiro não tem hora para avisar) que AINDA NÃO começaram
+            // e começam dentro da antecedência.
             if (agendamento.Status != StatusAgendamento.Pendente
+                || agendamento.DiaInteiro
                 || agendamento.Inicio < agora
                 || agendamento.Inicio > limite)
                 continue;

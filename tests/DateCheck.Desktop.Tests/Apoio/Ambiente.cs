@@ -2,6 +2,7 @@ using System.Globalization;
 using DateCheck.Application.Servicos;
 using DateCheck.Desktop.ViewModels;
 using DateCheck.Domain.Entidades;
+using DateCheck.Domain.Enums;
 using Microsoft.Extensions.Time.Testing;
 
 namespace DateCheck.Desktop.Tests.Apoio;
@@ -37,6 +38,8 @@ public sealed class Ambiente
 
     public FakeNavegacao Navegacao { get; } = new();
 
+    public FakeAbridorDeLinks Links { get; } = new();
+
     public IAgendamentoService Agendamentos { get; }
 
     public IConflitoService Conflitos { get; }
@@ -51,6 +54,17 @@ public sealed class Ambiente
     public Agendamento Semear(string titulo, DateTime inicio, DateTime fim, string? descricao = null) =>
         Repositorio.Semear(new Agendamento(titulo, inicio, fim, descricao));
 
+    /// <summary>Item importado do Notion (somente leitura).</summary>
+    public Agendamento SemearNotion(
+        string titulo, DateTime inicio, DateTime fim, bool diaInteiro = false,
+        StatusAgendamento status = StatusAgendamento.Pendente, string? url = "https://www.notion.so/pagina") =>
+        Repositorio.Semear(Agendamento.Importar(
+            OrigemAgendamento.Notion, $"id-{titulo}", url, titulo, null, inicio, fim, diaInteiro, status));
+
+    /// <summary>Item de dia inteiro do Notion; <paramref name="fim"/> é a meia-noite do dia seguinte ao último.</summary>
+    public Agendamento SemearDiaInteiro(string titulo, DateTime primeiroDia, DateTime? ultimoDia = null) =>
+        SemearNotion(titulo, primeiroDia.Date, (ultimoDia ?? primeiroDia).Date.AddDays(1), diaInteiro: true);
+
     public HojeViewModel CriarHoje()
     {
         // O timer da tela posta o refresh no SynchronizationContext capturado ao ativar. O xunit instala um
@@ -58,7 +72,7 @@ public sealed class Ambiente
         // Precisa ser chamado de forma síncrona dentro do teste, antes de qualquer await.
         SynchronizationContext.SetSynchronizationContext(null);
 
-        return new(Agendamentos, Conflitos, Duplicacao, Navegacao, Dialogos, Relogio);
+        return new(Agendamentos, Conflitos, Duplicacao, Navegacao, Links, Dialogos, Relogio);
     }
 
     public CalendarioViewModel CriarCalendario() =>

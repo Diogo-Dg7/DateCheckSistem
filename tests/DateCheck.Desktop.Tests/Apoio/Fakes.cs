@@ -65,6 +65,21 @@ public sealed class FakeDialogService : IDialogService
     }
 }
 
+/// <summary>Registra os links "abertos" sem iniciar nenhum navegador.</summary>
+public sealed class FakeAbridorDeLinks : IAbridorDeLinks
+{
+    public List<string> Abertos { get; } = [];
+
+    /// <summary>Simula um link inválido ou a falha do sistema ao abri-lo.</summary>
+    public bool Resultado { get; set; } = true;
+
+    public bool Abrir(string url)
+    {
+        Abertos.Add(url);
+        return Resultado;
+    }
+}
+
 public sealed class FakeNavegacao : INavegacao
 {
     public List<DateTime?> HojeMostrado { get; } = [];

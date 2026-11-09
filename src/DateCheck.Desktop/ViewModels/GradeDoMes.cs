@@ -31,7 +31,8 @@ public static class GradeDoMes
             {
                 var doDia = lista
                     .Where(a => a.Inicio < dia.AddDays(1) && a.Fim > dia)
-                    .OrderBy(a => a.Inicio)
+                    .OrderByDescending(a => a.DiaInteiro)
+                    .ThenBy(a => a.Inicio)
                     .ThenBy(a => a.Fim)
                     .ToList();
 
