@@ -7,7 +7,9 @@ internal static class AgendamentoMapper
 {
     public static AgendamentoDto ParaDto(Agendamento agendamento, DateTime? agora = null, bool proximo = false)
     {
+        // Dia inteiro nunca é "atrasado" nem "próximo": não tem um horário que vence.
         var atrasado = agora is { } hora
+            && !agendamento.DiaInteiro
             && agendamento.Status == StatusAgendamento.Pendente
             && agendamento.Fim < hora;
 
@@ -20,6 +22,9 @@ internal static class AgendamentoMapper
             agendamento.Status,
             agendamento.SerieId,
             atrasado,
-            proximo);
+            proximo && !agendamento.DiaInteiro,
+            agendamento.Origem,
+            agendamento.UrlExterna,
+            agendamento.DiaInteiro);
     }
 }

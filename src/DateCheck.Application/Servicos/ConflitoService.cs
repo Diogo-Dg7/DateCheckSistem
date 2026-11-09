@@ -17,12 +17,18 @@ public sealed class ConflitoService : IConflitoService
         DateTime inicio,
         DateTime fim,
         int? ignorarId = null,
+        bool diaInteiro = false,
         CancellationToken cancellationToken = default)
     {
+        // Itens de dia inteiro (férias, feriados) não conflitam com nada, nem como consultados nem como candidatos.
+        if (diaInteiro)
+            return [];
+
         var candidatos = await _repositorio.ListarPorPeriodoAsync(inicio, fim, cancellationToken);
 
         return candidatos
             .Where(a => a.Status != StatusAgendamento.Cancelado)
+            .Where(a => !a.DiaInteiro)
             .Where(a => a.Id != ignorarId)
             .Where(a => Conflitam(inicio, fim, a.Inicio, a.Fim))
             .OrderBy(a => a.Inicio)
