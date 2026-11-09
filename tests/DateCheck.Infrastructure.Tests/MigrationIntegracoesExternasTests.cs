@@ -69,6 +69,37 @@ public class MigrationIntegracoesExternasTests : IAsyncLifetime
         Assert.Equal(Domain.Enums.StatusAgendamento.Concluido, itens[1].Status);
     }
 
+    /// <summary>
+    /// A v0.1.0 instalada usa o mesmo banco e não conhece as colunas novas: o INSERT dela precisa continuar
+    /// funcionando, o que exige DEFAULT no banco (e não só na migration).
+    /// </summary>
+    [Fact]
+    public async Task InsertDaV010SemAsColunasNovas_ContinuaFuncionandoComValoresPadrao()
+    {
+        await using var contexto = CriarContexto();
+        await contexto.Database.MigrateAsync();
+
+        await contexto.Database.ExecuteSqlRawAsync(
+            "INSERT INTO dbo.Agendamentos (Titulo, Descricao, Inicio, Fim, Status, SerieId) " +
+            "VALUES (N'Inserido pela v0.1.0', NULL, '2026-11-02T09:00:00', '2026-11-02T10:00:00', 0, NULL)");
+
+        var item = await contexto.Agendamentos.AsNoTracking().SingleAsync();
+        Assert.Equal(Domain.Enums.OrigemAgendamento.Local, item.Origem);
+        Assert.False(item.DiaInteiro);
+        Assert.Null(item.IdExterno);
+
+        var padroes = await contexto.Database
+            .SqlQuery<string>($"""
+                SELECT CONCAT(c.name, '=', dc.definition) AS Value
+                FROM sys.default_constraints dc
+                JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+                WHERE dc.parent_object_id = OBJECT_ID('dbo.Agendamentos')
+                """)
+            .ToListAsync();
+        Assert.Contains("Origem=((0))", padroes);
+        Assert.Contains("DiaInteiro=(CONVERT([bit],(0)))", padroes);
+    }
+
     [Fact]
     public async Task IndiceDeOrigemEIdExterno_EUnicoEFiltradoPorIdExternoNaoNulo()
     {
