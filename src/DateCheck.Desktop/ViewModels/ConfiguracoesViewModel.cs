@@ -28,7 +28,7 @@ public sealed partial class ConfiguracoesViewModel : ViewModelBase
 
     public static int MaximoDeMinutos => Preferencias.AntecedenciaMaximaEmMinutos;
 
-    public string LocalDoArquivo => ArmazenamentoJsonDePreferencias.CaminhoPadrao();
+    public string LocalDoArquivo => ArmazenamentoJsonDePreferencias.CaminhoPadrao(AmbienteDeExecucao.Atual.PastaDeDados);
 
     [ObservableProperty]
     private int _minutosAntes;

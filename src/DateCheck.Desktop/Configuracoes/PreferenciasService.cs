@@ -72,9 +72,8 @@ public sealed class ArmazenamentoJsonDePreferencias : IArmazenamentoDePreferenci
         _caminho = caminho;
     }
 
-    /// <summary>%LOCALAPPDATA%\DateCheck\preferencias.json</summary>
-    public static string CaminhoPadrao() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DateCheck", "preferencias.json");
+    /// <summary>preferencias.json dentro da pasta de dados do ambiente (%LOCALAPPDATA%\DateCheck ou DateCheck-Dev).</summary>
+    public static string CaminhoPadrao(string pastaDeDados) => Path.Combine(pastaDeDados, "preferencias.json");
 
     public Preferencias? Carregar()
     {

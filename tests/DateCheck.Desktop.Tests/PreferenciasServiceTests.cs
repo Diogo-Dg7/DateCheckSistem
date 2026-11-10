@@ -1,5 +1,6 @@
 using System.IO;
 using DateCheck.Desktop.Configuracoes;
+using DateCheck.Desktop.Servicos;
 
 namespace DateCheck.Desktop.Tests;
 
@@ -177,7 +178,7 @@ public sealed class PreferenciasServiceTests : IDisposable
     [Fact]
     public void CaminhoPadrao_FicaEmLocalAppDataDateCheck()
     {
-        var caminho = ArmazenamentoJsonDePreferencias.CaminhoPadrao();
+        var caminho = ArmazenamentoJsonDePreferencias.CaminhoPadrao(AmbienteDeExecucao.De(null).PastaDeDados);
 
         Assert.EndsWith(Path.Combine("DateCheck", "preferencias.json"), caminho);
         Assert.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), caminho);

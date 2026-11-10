@@ -9,6 +9,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+        Title = Servicos.AmbienteDeExecucao.Atual.TituloDoApp;
 
         // Abre na tela Hoje assim que a janela é exibida.
         Loaded += async (_, _) => await viewModel.InicializarAsync();
