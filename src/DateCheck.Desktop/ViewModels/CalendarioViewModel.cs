@@ -64,6 +64,8 @@ public sealed partial class CalendarioViewModel : ViewModelBase, ITela
     {
     }
 
+    public Task RecarregarAsync() => CarregarAsync();
+
     public async Task CarregarAsync()
     {
         var grade = GradeDoMes.Dias(Mes.Year, Mes.Month);

@@ -86,6 +86,14 @@ public sealed class FakeNavegacao : INavegacao
 
     public int CalendarioMostrado { get; private set; }
 
+    public int Recarregamentos { get; private set; }
+
+    public Task RecarregarAtualAsync()
+    {
+        Recarregamentos++;
+        return Task.CompletedTask;
+    }
+
     public Task MostrarHojeAsync(DateTime? dia = null)
     {
         HojeMostrado.Add(dia);
@@ -274,4 +282,77 @@ public sealed class FakePreferenciasService : IPreferenciasService
         Atual = preferencias;
         Alterado?.Invoke();
     }
+}
+
+/// <summary>Serviço de sincronização falso: conta chamadas e dispara os eventos sob demanda.</summary>
+public sealed class SincronizacaoFalsa : DateCheck.Application.Servicos.ISincronizacaoExternaService
+{
+    private int _chamadas;
+    private int _chamadasAguardadas;
+    private readonly SemaphoreSlim _sinal = new(0);
+
+    public int Chamadas => Volatile.Read(ref _chamadas);
+
+    /// <summary>
+    /// Espera, SEM depender de tempo real, até que a chamada de número <paramref name="total"/> tenha acontecido.
+    /// O serviço sinaliza cada chamada; o limite só existe para o teste falhar em vez de travar se houver um bug.
+    /// </summary>
+    public async Task AguardarChamadasAsync(int total, TimeSpan? limite = null)
+    {
+        var espera = limite ?? TimeSpan.FromSeconds(30);
+        while (_chamadasAguardadas < total)
+        {
+            if (!await _sinal.WaitAsync(espera))
+                throw new TimeoutException($"Esperava {total} chamada(s) de sincronização, mas só houve {Chamadas}.");
+
+            _chamadasAguardadas++;
+        }
+    }
+
+    public List<bool> Manuais { get; } = [];
+
+    public Exception? ExcecaoNaProxima { get; set; }
+
+    public DateCheck.Application.Servicos.EstadoDaSincronizacao Estado { get; set; } =
+        DateCheck.Application.Servicos.EstadoDaSincronizacao.NaoConfigurado;
+
+    public event Action<DateCheck.Application.Servicos.EstadoDaSincronizacao>? EstadoAlterado;
+
+    public event Action? DadosAlterados;
+
+    public event Action? ReconexaoNecessaria;
+
+    public void DispararDadosAlterados() => DadosAlterados?.Invoke();
+
+    public void DispararReconexao() => ReconexaoNecessaria?.Invoke();
+
+    public void DispararEstado(DateCheck.Application.Servicos.EstadoDaSincronizacao estado)
+    {
+        Estado = estado;
+        EstadoAlterado?.Invoke(estado);
+    }
+
+    public Task<DateCheck.Application.Servicos.EstadoDaSincronizacao> SincronizarAsync(
+        bool manual = false, CancellationToken cancellationToken = default)
+    {
+        Interlocked.Increment(ref _chamadas);
+        lock (Manuais)
+            Manuais.Add(manual);
+        _sinal.Release(); // antes de qualquer exceção: a chamada aconteceu, falhando ou não
+
+        if (ExcecaoNaProxima is { } excecao)
+        {
+            ExcecaoNaProxima = null;
+            throw excecao;
+        }
+
+        return Task.FromResult(Estado);
+    }
+
+    public int Reinicios { get; private set; }
+
+    public void Reiniciar() => Reinicios++;
+
+    public Task<TResultado> ExecutarSemSincronizacaoAsync<TResultado>(
+        Func<Task<TResultado>> acao, CancellationToken cancellationToken = default) => acao();
 }

@@ -9,7 +9,7 @@ namespace DateCheck.Desktop.Servicos;
 /// Ícone na bandeja do sistema (Hardcodet.NotifyIcon.Wpf). Menu: Abrir, Iniciar com o Windows (marcável) e Sair;
 /// duplo clique abre a janela. Criado antes da inicialização do banco para o usuário ver que o app está vivo.
 /// </summary>
-public sealed class IconeDaBandeja : IDisposable
+public sealed class IconeDaBandeja : DateCheck.Desktop.Integracoes.IAvisoDeBandeja, IDisposable
 {
     private static readonly string Nome = AmbienteDeExecucao.Atual.TituloDoApp;
 

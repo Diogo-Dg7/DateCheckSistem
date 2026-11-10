@@ -29,6 +29,8 @@ public sealed partial class NavegacaoService : ObservableObject, INavegacao
 
     public Task MostrarCalendarioAsync() => IrParaAsync(_services.GetRequiredService<CalendarioViewModel>());
 
+    public Task RecarregarAtualAsync() => Atual is ITela tela ? tela.RecarregarAsync() : Task.CompletedTask;
+
     private async Task IrParaAsync(ITela destino)
     {
         if (Atual is ITela anterior && !ReferenceEquals(anterior, destino))
