@@ -151,6 +151,73 @@ public sealed class ArquivoDeLogTests : IDisposable
     }
 
     [Fact]
+    public void RetencaoPadraoEDe14Dias()
+    {
+        Assert.Equal(14, ArquivoDeLogProvider.DiasDeRetencao);
+    }
+
+    [Fact]
+    public void NaInicializacao_ApagaOsLogsComMaisDe14Dias_UsandoOPadrao()
+    {
+        // "Hoje" no relógio falso é 10/11/2026.
+        Directory.CreateDirectory(_pasta);
+        File.WriteAllText(Path.Combine(_pasta, "datecheck-20261001.log"), "40 dias");     // apaga
+        File.WriteAllText(Path.Combine(_pasta, "datecheck-20261025.log"), "16 dias");     // apaga
+        File.WriteAllText(Path.Combine(_pasta, "datecheck-20261026.log"), "15 dias");     // apaga (mais de 14)
+        File.WriteAllText(Path.Combine(_pasta, "datecheck-20261027.log"), "14 dias");     // fica (exatamente 14)
+        File.WriteAllText(Path.Combine(_pasta, "datecheck-20261109.log"), "ontem");       // fica
+        File.WriteAllText(Path.Combine(_pasta, "datecheck-20261110.log"), "hoje");        // fica
+
+        _ = new ArquivoDeLogProvider(_pasta, _relogio); // sem informar a retenção: vale a constante
+
+        Assert.Equal(["datecheck-20261027.log", "datecheck-20261109.log", "datecheck-20261110.log"],
+            Directory.GetFiles(_pasta).Select(Path.GetFileName).Order());
+    }
+
+    [Fact]
+    public void RetencaoAcompanhaORelogio_NoDiaSeguinteApagaUmArquivoAMais()
+    {
+        Directory.CreateDirectory(_pasta);
+        File.WriteAllText(Path.Combine(_pasta, "datecheck-20261027.log"), "14 dias hoje");
+
+        _ = new ArquivoDeLogProvider(_pasta, _relogio);
+        Assert.True(File.Exists(Path.Combine(_pasta, "datecheck-20261027.log")));
+
+        _relogio.Advance(TimeSpan.FromDays(1)); // o app abriu de novo no dia seguinte
+        _ = new ArquivoDeLogProvider(_pasta, _relogio);
+
+        Assert.False(File.Exists(Path.Combine(_pasta, "datecheck-20261027.log")));
+    }
+
+    [Fact]
+    public void ArquivoQueNaoPodeSerApagado_NaoImpedeOsDemaisNemLancaExcecao()
+    {
+        Directory.CreateDirectory(_pasta);
+        var travado = Path.Combine(_pasta, "datecheck-20260101.log");
+        var outro = Path.Combine(_pasta, "datecheck-20260102.log");
+        File.WriteAllText(travado, "aberto por outro programa");
+        File.WriteAllText(outro, "pode apagar");
+
+        // FileShare.None: outro "programa" mantém o arquivo aberto, e o Windows recusa apagar.
+        using (new FileStream(travado, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            var excecao = Record.Exception(() => new ArquivoDeLogProvider(_pasta, _relogio));
+
+            Assert.Null(excecao);
+            Assert.True(File.Exists(travado));
+            Assert.False(File.Exists(outro)); // o outro foi apagado mesmo assim (cada arquivo é tratado sozinho)
+        }
+    }
+
+    [Fact]
+    public void PastaQueNaoExiste_NaInicializacao_NaoLanca()
+    {
+        var excecao = Record.Exception(() => new ArquivoDeLogProvider(Path.Combine(_pasta, "nao-existe"), _relogio));
+
+        Assert.Null(excecao);
+    }
+
+    [Fact]
     public void DiaQuePassaDoLimiteDeTamanho_ParaDeCrescer()
     {
         var provider = Criar();

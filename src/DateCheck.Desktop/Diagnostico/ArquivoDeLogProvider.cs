@@ -13,11 +13,16 @@ namespace DateCheck.Desktop.Diagnostico;
 /// <item>Rede de segurança: tokens (<c>ntn_…</c>, <c>secret_…</c>, <c>Bearer …</c>) são mascarados em TODA linha antes de
 /// gravar, mesmo que alguém os registre por engano. O código nunca deve logar segredos; isto é a segunda barreira.</item>
 /// <item>Escrever o log nunca derruba o app: qualquer falha de disco é engolida.</item>
-/// <item>Guarda os últimos dias (padrão 7) e para de crescer um dia que passe de 5 MB.</item>
+/// <item>Na inicialização apaga os <c>datecheck-*.log</c> com mais de <see cref="DiasDeRetencao"/> dias (um arquivo
+/// que não puder ser apagado, por estar aberto ou sem permissão, não impede os outros nem o app) e para de
+/// crescer um dia que passe de 5 MB.</item>
 /// </list>
 /// </summary>
 public sealed partial class ArquivoDeLogProvider : ILoggerProvider
 {
+    /// <summary>Arquivos de log com mais dias que isto são apagados na inicialização.</summary>
+    public const int DiasDeRetencao = 14;
+
     public const string Mascara = "[segredo-removido]";
     public const long TamanhoMaximoDoDiaEmBytes = 5 * 1024 * 1024;
 
@@ -25,7 +30,7 @@ public sealed partial class ArquivoDeLogProvider : ILoggerProvider
     private readonly TimeProvider _relogio;
     private readonly object _trava = new();
 
-    public ArquivoDeLogProvider(string pasta, TimeProvider? relogio = null, int diasDeRetencao = 7)
+    public ArquivoDeLogProvider(string pasta, TimeProvider? relogio = null, int diasDeRetencao = DiasDeRetencao)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pasta);
         _pasta = pasta;
@@ -79,24 +84,38 @@ public sealed partial class ArquivoDeLogProvider : ILoggerProvider
         }
     }
 
+    /// <summary>
+    /// Apaga os logs com mais de <paramref name="dias"/> dias (a data vem do nome do arquivo, não do relógio do
+    /// sistema de arquivos). Cada arquivo é tratado isoladamente: um que falhe não impede os demais nem o app.
+    /// </summary>
     private void LimparAntigos(int dias)
     {
+        IEnumerable<string> arquivos;
         try
         {
             if (!Directory.Exists(_pasta))
                 return;
 
-            var limite = _relogio.GetLocalNow().DateTime.Date.AddDays(-dias);
-            foreach (var arquivo in Directory.EnumerateFiles(_pasta, "datecheck-*.log"))
+            arquivos = Directory.EnumerateFiles(_pasta, "datecheck-*.log").ToList();
+        }
+        catch (Exception)
+        {
+            return; // pasta ilegível: limpeza é só higiene
+        }
+
+        var limite = _relogio.GetLocalNow().DateTime.Date.AddDays(-dias);
+        foreach (var arquivo in arquivos)
+        {
+            try
             {
                 var nome = Path.GetFileNameWithoutExtension(arquivo)["datecheck-".Length..];
                 if (DateTime.TryParseExact(nome, "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out var dia) && dia < limite)
                     File.Delete(arquivo);
             }
-        }
-        catch (Exception)
-        {
-            // Limpeza é só higiene.
+            catch (Exception)
+            {
+                // Aberto por outro programa ou sem permissão: fica para a próxima inicialização.
+            }
         }
     }
 
