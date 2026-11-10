@@ -6,8 +6,8 @@ namespace DateCheck.Application.Notion;
 public static partial class NotionLinks
 {
     /// <summary>
-    /// Aceita o link do banco (<c>https://www.notion.so/ws/Titulo-&lt;32 hex&gt;?v=&lt;visão&gt;</c>), o id com ou sem
-    /// hífens e links <c>notion.site</c>. O id da visão (<c>?v=</c>) nunca é confundido com o do banco.
+    /// Aceita o link do banco (<c>https://www.notion.so/ws/Titulo-&lt;32 hex&gt;?v=&lt;visão&gt;</c> ou, no formato atual do
+    /// Notion, <c>https://app.notion.com/p/&lt;32 hex&gt;?pvs=...</c>), o id com ou sem hífens e links <c>notion.site</c>. O id da visão (<c>?v=</c>) nunca é confundido com o do banco.
     /// Retorna o id no formato com hífens, ou nulo se não houver um id válido.
     /// </summary>
     public static string? ExtrairIdDoBanco(string? linkOuId)
@@ -43,7 +43,10 @@ public static partial class NotionLinks
     private static bool EhDominioDoNotion(string host) =>
         host.Equals("notion.so", StringComparison.OrdinalIgnoreCase)
         || host.EndsWith(".notion.so", StringComparison.OrdinalIgnoreCase)
-        || host.EndsWith(".notion.site", StringComparison.OrdinalIgnoreCase);
+        || host.EndsWith(".notion.site", StringComparison.OrdinalIgnoreCase)
+        // O botão "Copiar link" atual do Notion gera https://app.notion.com/p/<id>?pvs=...
+        || host.Equals("notion.com", StringComparison.OrdinalIgnoreCase)
+        || host.EndsWith(".notion.com", StringComparison.OrdinalIgnoreCase);
 
     // 32 hex precedidos de início, "/" ou "-" e seguidos de fim, "/" ou "-": o final de "Titulo-<id>".
     [GeneratedRegex("(?<![0-9a-fA-F])([0-9a-fA-F]{32})(?![0-9a-fA-F])")]

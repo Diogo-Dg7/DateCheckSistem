@@ -19,6 +19,14 @@ public class NotionLinksTests
     [InlineData($"https://meu-site.notion.site/Tarefas-{IdHex}?v={IdDaVisao}")]
     [InlineData($"  https://www.notion.so/ws/Tarefas-{IdHex}  ")]
     [InlineData($"https://www.notion.so/ws/Tarefas-0123456789ABCDEF0123456789ABCDEF")]
+    // Formato atual do botão "Copiar link" do Notion (app.notion.com/p/<id>), achado no teste real da fase 2.
+    [InlineData($"https://app.notion.com/p/{IdHex}")]
+    [InlineData($"https://app.notion.com/p/{IdHex}?pvs=204")]
+    [InlineData($"https://app.notion.com/p/{IdHex}?v={IdDaVisao}&pvs=4")]
+    [InlineData($"https://app.notion.com/p/Tarefas-{IdHex}")]
+    [InlineData($"https://www.notion.com/p/{IdHex}")]
+    [InlineData($"https://notion.com/p/{IdHex}")]
+    [InlineData($"  https://app.notion.com/p/{IdHex}?pvs=204  ")]
     [InlineData(IdHex)]
     [InlineData(IdComHifens)]
     [InlineData($"{IdHex}?v={IdDaVisao}")]
@@ -47,6 +55,10 @@ public class NotionLinksTests
     [InlineData("https://www.exemplo.com/Tarefas-0123456789abcdef0123456789abcdef")] // outro domínio
     [InlineData("https://notion.so.evil.com/Tarefas-0123456789abcdef0123456789abcdef")]
     [InlineData("ftp://www.notion.so/Tarefas-0123456789abcdef0123456789abcdef")]
+    [InlineData("https://app.notion.com.evil.com/p/0123456789abcdef0123456789abcdef")]
+    [InlineData("https://evilnotion.com/p/0123456789abcdef0123456789abcdef")]
+    [InlineData("ftp://app.notion.com/p/0123456789abcdef0123456789abcdef")]
+    [InlineData("https://app.notion.com/p/semid")]
     [InlineData("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")]
     public void EntradasInvalidas_RetornamNulo(string? entrada)
     {
