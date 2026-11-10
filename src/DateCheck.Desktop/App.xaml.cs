@@ -8,6 +8,7 @@ using DateCheck.Application;
 using DateCheck.Application.Interfaces;
 using DateCheck.Desktop.Configuracoes;
 using DateCheck.Desktop.Integracoes;
+using DateCheck.Desktop.Diagnostico;
 using DateCheck.Desktop.Navegacao;
 using DateCheck.Desktop.Notificacoes;
 using DateCheck.Desktop.Servicos;
@@ -15,6 +16,7 @@ using DateCheck.Desktop.ViewModels;
 using DateCheck.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace DateCheck.Desktop;
 
@@ -57,6 +59,11 @@ public partial class App : System.Windows.Application
         {
             _host = CriarHost(e.Args);
             var services = _host.Services;
+
+            services.GetRequiredService<ILogger<App>>().LogInformation(
+                "{Titulo} iniciado. Ambiente: {Ambiente}. Pasta de dados: {Pasta}.",
+                TituloApp, AmbienteDeExecucao.Atual.EhDesenvolvimento ? "Development" : "Production",
+                AmbienteDeExecucao.Atual.PastaDeDados);
 
             _controle = services.GetRequiredService<ControleDaJanela>();
             _instancia.EscutarPedidosDeAbertura(_controle.Mostrar);
@@ -130,6 +137,9 @@ public partial class App : System.Windows.Application
         var ambiente = AmbienteDeExecucao.Atual;
         ambiente.GarantirBancoIsolado(builder.Configuration[$"ConnectionStrings:{DateCheck.Infrastructure.Persistencia.ConexaoPadrao.Nome}"]);
         builder.Services.AddSingleton(ambiente);
+
+        // Log em arquivo na pasta de dados do ambiente (logs\datecheck-aaaaMMdd.log), com tokens sempre mascarados.
+        builder.Logging.AddProvider(new ArquivoDeLogProvider(Path.Combine(ambiente.PastaDeDados, "logs")));
 
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
