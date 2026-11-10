@@ -480,3 +480,8 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Segredos das integrações (nunca versionar)
+client_secret*.json
+*.token*
+/segredos/
