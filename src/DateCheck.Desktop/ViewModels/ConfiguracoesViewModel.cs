@@ -39,7 +39,8 @@ public sealed partial class ConfiguracoesViewModel : ViewModelBase
     [RelayCommand]
     private void Salvar()
     {
-        var novas = new Preferencias { MinutosAntes = MinutosAntes };
+        // Parte das preferências atuais: o resto (Notion, intervalo) não pode ser apagado ao salvar só a antecedência.
+        var novas = _preferencias.Atual with { MinutosAntes = MinutosAntes };
         if (!novas.EhValida)
         {
             Dialogos.MostrarAviso($"A antecedência deve ficar entre 0 e {MaximoDeMinutos} minutos.");
