@@ -1,1 +1,4 @@
 * text=auto
+
+# Scripts de shell precisam de LF mesmo no Windows (CRLF quebra o bash).
+*.sh text eol=lf
