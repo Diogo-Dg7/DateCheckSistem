@@ -211,6 +211,101 @@ public sealed class NotionApiTests : IDisposable
         Assert.Equal(tipo == TipoDeFalhaExterna.NaoAutorizado, ex.ExigeReconexao);
     }
 
+    // ---------- consulta recusada com 400: propriedade configurada que mudou no Notion ----------
+    // Achado no teste real (caso 16): renomear "Data" no Notion faz o próprio Notion recusar a consulta (o filtro
+    // aponta para uma propriedade que não existe) com 400 validation_error. A mensagem era só "O Notion recusou o
+    // pedido (400, validation_error)", sem dizer o que fazer.
+
+    private static string DataSourceCom(params (string Nome, string Tipo)[] propriedades) =>
+        "{\"object\":\"data_source\",\"id\":\"ds-0001\",\"properties\":{"
+        + string.Join(",", propriedades.Select(p => $"\"{p.Nome}\":{{\"id\":\"x\",\"name\":\"{p.Nome}\",\"type\":\"{p.Tipo}\"}}"))
+        + "}}";
+
+    [Fact]
+    public async Task Consulta400_ComPropriedadeDeDataQueSumiu_DizQualPropriedadeEOQueFazer()
+    {
+        Responder(HttpStatusCode.BadRequest, "erro-400-validacao.json");
+        _servidor.Responder(HttpStatusCode.OK, DataSourceCom(("Nome", "title"), ("Data2", "date")));
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
+
+        Assert.Equal(TipoDeFalhaExterna.RespostaInvalida, ex.Tipo);
+        Assert.Contains("\"Data\"", ex.Message);
+        Assert.Contains("não existe mais", ex.Message);
+        Assert.Contains("Configurações > Notion", ex.Message);
+        Assert.Contains("Nada foi alterado", ex.Message);
+        Assert.DoesNotContain("400", ex.Message);
+        Assert.DoesNotContain(Token, ex.Message);
+
+        // A consulta recusada e UMA leitura da estrutura do banco para descobrir o motivo; nenhuma tentativa repetida.
+        Assert.Equal(2, _servidor.Recebidas.Count);
+        Assert.Equal(HttpMethod.Get, _servidor.Recebidas[1].Metodo);
+        Assert.Equal("https://api.notion.com/v1/data_sources/ds-0001", _servidor.Recebidas[1].Uri.GetLeftPart(UriPartial.Path));
+    }
+
+    [Fact]
+    public async Task Consulta400_ComPropriedadeDeDataQueMudouDeTipo_DizQueMudouDeTipo()
+    {
+        Responder(HttpStatusCode.BadRequest, "erro-400-validacao.json");
+        _servidor.Responder(HttpStatusCode.OK, DataSourceCom(("Nome", "title"), ("Data", "rich_text")));
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
+
+        Assert.Equal(TipoDeFalhaExterna.RespostaInvalida, ex.Tipo);
+        Assert.Contains("\"Data\"", ex.Message);
+        Assert.Contains("mudou de tipo", ex.Message);
+        Assert.Contains("Configurações > Notion", ex.Message);
+    }
+
+    [Fact]
+    public async Task Consulta400_ComPropriedadeDeConclusaoQueSumiu_DizQualPropriedade()
+    {
+        var config = Config with { Conclusao = new ConclusaoNotion("Feito", TipoDeConclusaoNotion.Checkbox) };
+        Responder(HttpStatusCode.BadRequest, "erro-400-validacao.json");
+        _servidor.Responder(HttpStatusCode.OK, DataSourceCom(("Nome", "title"), ("Data", "date")));
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Consultar(config));
+
+        Assert.Equal(TipoDeFalhaExterna.RespostaInvalida, ex.Tipo);
+        Assert.Contains("\"Feito\"", ex.Message);
+        Assert.Contains("não existe mais", ex.Message);
+        Assert.Contains("Configurações > Notion", ex.Message);
+    }
+
+    [Fact]
+    public async Task Consulta400_ComEstruturaIntacta_MantemAMensagemGenerica()
+    {
+        Responder(HttpStatusCode.BadRequest, "erro-400-validacao.json");
+        _servidor.Responder(HttpStatusCode.OK, DataSourceCom(("Nome", "title"), ("Data", "date")));
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
+
+        Assert.Equal(TipoDeFalhaExterna.RespostaInvalida, ex.Tipo);
+        Assert.Contains("400, validation_error", ex.Message);
+    }
+
+    [Fact]
+    public async Task Consulta400_SeALeituraDaEstruturaTambemFalha_MantemAMensagemGenerica()
+    {
+        Responder(HttpStatusCode.BadRequest, "erro-400-validacao.json");
+        Responder(HttpStatusCode.NotFound, "erro-404.json");
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
+
+        Assert.Contains("400, validation_error", ex.Message);
+    }
+
+    [Fact]
+    public async Task Consulta401_NaoLeAEstruturaDoBanco()
+    {
+        // Outros 4xx (401, 403, 404) continuam sem leitura extra: só o 400 de validação investiga.
+        Responder(HttpStatusCode.Unauthorized, "erro-401.json");
+
+        await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
+
+        Assert.Single(_servidor.Recebidas);
+    }
+
     [Fact]
     public async Task Http429ComRetryAfter_EsperaETentaDeNovo()
     {

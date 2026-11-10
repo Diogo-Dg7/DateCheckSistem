@@ -27,14 +27,18 @@ public enum TipoDeFalhaExterna
 /// </summary>
 public sealed class FonteExternaException : AplicacaoException
 {
-    public FonteExternaException(TipoDeFalhaExterna tipo, string mensagem, Exception? causa = null)
+    public FonteExternaException(TipoDeFalhaExterna tipo, string mensagem, Exception? causa = null, int? statusHttp = null)
         : base(mensagem)
     {
         Tipo = tipo;
         CausaOriginal = causa;
+        StatusHttp = statusHttp;
     }
 
     public TipoDeFalhaExterna Tipo { get; }
+
+    /// <summary>Status HTTP da resposta que originou a falha, quando houve uma. Usado para investigar o motivo de um 400.</summary>
+    public int? StatusHttp { get; }
 
     /// <summary>Só para log; não é exibida. Pode ser nula.</summary>
     public Exception? CausaOriginal { get; }

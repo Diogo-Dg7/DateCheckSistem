@@ -148,7 +148,7 @@ public sealed class NotionApi : INotionApi
         for (var pagina = 1; pagina <= LimiteDePaginas; pagina++)
         {
             var corpo = JsonSerializer.Serialize(MontarCorpoDaConsulta(configuracao.PropriedadeData, de, ate, cursor), OpcoesDeEscrita);
-            using var documento = await EnviarAsync(HttpMethod.Post, caminho, token, corpo, cancellationToken);
+            using var documento = await EnviarConsultaAsync(caminho, token, corpo, configuracao, cancellationToken);
             var raiz = documento.RootElement;
 
             // Resultado incompleto (ex.: passou de 10 mil itens): é uma lista parcial, que nunca pode alimentar a remoção.
@@ -185,6 +185,64 @@ public sealed class NotionApi : INotionApi
             $"A consulta ao Notion passou de {LimiteDePaginas} páginas ({LimiteDeItens:N0} itens), o máximo que o DateCheck aceita de uma vez. "
             + "Nada foi alterado no DateCheck. Para resolver, reduza o banco: arquive ou mova para outro banco "
             + "os itens que você não precisa ver no calendário.");
+    }
+
+    /// <summary>
+    /// Envia uma página da consulta. Se o Notion recusar com 400, o motivo mais comum é a propriedade configurada
+    /// ter sido renomeada, apagada ou trocada de tipo no Notion (o filtro aponta para algo que não existe): o próprio
+    /// Notion recusa a consulta, então a checagem do conversor nem chega a rodar. Nesse caso lê a estrutura do banco
+    /// (uma requisição) para dizer ao usuário qual propriedade e o que fazer. Se a estrutura estiver intacta, ou a
+    /// leitura falhar, vale o erro original.
+    /// </summary>
+    private async Task<JsonDocument> EnviarConsultaAsync(
+        string caminho, string token, string corpo, ConfiguracaoNotion configuracao, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await EnviarAsync(HttpMethod.Post, caminho, token, corpo, cancellationToken);
+        }
+        catch (FonteExternaException ex) when (ex.StatusHttp == (int)HttpStatusCode.BadRequest)
+        {
+            var explicacao = await ExplicarPropriedadeDesatualizadaAsync(token, configuracao, cancellationToken);
+            if (explicacao is null)
+                throw;
+
+            throw new FonteExternaException(TipoDeFalhaExterna.RespostaInvalida, explicacao, ex);
+        }
+    }
+
+    private async Task<string?> ExplicarPropriedadeDesatualizadaAsync(
+        string token, ConfiguracaoNotion configuracao, CancellationToken cancellationToken)
+    {
+        FonteDeDadosNotion fonte;
+        try
+        {
+            fonte = await ObterFonteDeDadosAsync(token, configuracao.DataSourceId, configuracao.DataSourceId, cancellationToken);
+        }
+        catch (FonteExternaException)
+        {
+            return null;
+        }
+
+        var esperadas = new List<(string Nome, string Tipo)> { (configuracao.PropriedadeData, TiposDePropriedadeNotion.Data) };
+        if (configuracao.Conclusao is { } conclusao)
+            esperadas.Add((conclusao.Propriedade, conclusao.Tipo == TipoDeConclusaoNotion.Status
+                ? TiposDePropriedadeNotion.Status
+                : TiposDePropriedadeNotion.Checkbox));
+
+        foreach (var (nome, tipo) in esperadas)
+        {
+            var atual = fonte.Propriedades.FirstOrDefault(p => p.Nome == nome);
+            if (atual is null)
+                return $"A propriedade \"{nome}\" não existe mais no banco do Notion (foi renomeada ou apagada?). "
+                    + "Nada foi alterado no DateCheck. Abra Configurações > Notion e escolha de novo.";
+
+            if (atual.Tipo != tipo)
+                return $"A propriedade \"{nome}\" do Notion mudou de tipo (era esperado \"{tipo}\"). "
+                    + "Nada foi alterado no DateCheck. Abra Configurações > Notion e escolha de novo.";
+        }
+
+        return null;
     }
 
     private static object MontarCorpoDaConsulta(string propriedadeDeData, DateOnly de, DateOnly ate, string? cursor) => new
@@ -271,7 +329,8 @@ public sealed class NotionApi : INotionApi
             >= HttpStatusCode.InternalServerError => new(TipoDeFalhaExterna.Indisponivel,
                 "O Notion está indisponível no momento. O DateCheck tentará de novo mais tarde."),
             _ => new(TipoDeFalhaExterna.RespostaInvalida,
-                $"O Notion recusou o pedido ({status}{(codigo is null ? string.Empty : ", " + codigo)}).")
+                $"O Notion recusou o pedido ({status}{(codigo is null ? string.Empty : ", " + codigo)}).",
+                causa: null, statusHttp: status)
         };
     }
 
