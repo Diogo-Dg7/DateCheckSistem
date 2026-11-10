@@ -253,6 +253,22 @@ public class SincronizacaoExternaServiceTests
     }
 
     [Fact]
+    public async Task FalhaDaFonte_RegistraNoLogOMotivoCompleto_ComAMesmaMensagemDasConfiguracoes()
+    {
+        var log = new LogCapturado<SincronizacaoExternaService>();
+        var servico = new SincronizacaoExternaService(_fonte, _repositorio, _relogio, log);
+        const string mensagem = "O Notion não entregou todos os itens: ele limita cada consulta a 10.000 resultados. Nada foi alterado no DateCheck.";
+        _fonte.Falha = new FonteExternaException(TipoDeFalhaExterna.Incompleta, mensagem);
+
+        var estado = await servico.SincronizarAsync();
+
+        Assert.Equal(mensagem, estado.Erro); // o que aparece nas Configurações
+        var (_, texto) = Assert.Single(log.Entradas, e => e.Nivel == Microsoft.Extensions.Logging.LogLevel.Warning);
+        Assert.Contains(mensagem, texto); // e o que vai para o log, o mesmo texto
+        Assert.Contains("Incompleta", texto);
+    }
+
+    [Fact]
     public async Task FalhaDepoisDeUmaBoaSincronizacao_MantemAUltimaSincronizacaoNoEstado()
     {
         _fonte.Itens = [Notion("a", "A", new DateTime(2026, 11, 12, 9, 0, 0))];

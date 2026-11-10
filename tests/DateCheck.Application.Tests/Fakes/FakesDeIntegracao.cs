@@ -104,3 +104,18 @@ public sealed class NotionApiFalsa : INotionApi
         return Falha is null ? Task.FromResult(Paginas) : Task.FromException<IReadOnlyList<Agendamento>>(Falha);
     }
 }
+
+/// <summary>Logger que guarda o texto formatado das mensagens para os testes conferirem o que foi registrado.</summary>
+public sealed class LogCapturado<T> : Microsoft.Extensions.Logging.ILogger<T>
+{
+    public List<(Microsoft.Extensions.Logging.LogLevel Nivel, string Mensagem)> Entradas { get; } = [];
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+    public void Log<TState>(
+        Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state,
+        Exception? exception, Func<TState, Exception?, string> formatter) =>
+        Entradas.Add((logLevel, formatter(state, exception)));
+}

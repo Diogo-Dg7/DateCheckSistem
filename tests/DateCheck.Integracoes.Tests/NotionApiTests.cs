@@ -146,6 +146,11 @@ public sealed class NotionApiTests : IDisposable
         var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
 
         Assert.Equal(TipoDeFalhaExterna.Incompleta, ex.Tipo);
+        // O motivo e o limite aparecem na mensagem, e ela diz que nada foi alterado.
+        Assert.Contains("10.000", ex.Message);
+        Assert.Contains("limita cada consulta", ex.Message);
+        Assert.Contains("Nada foi alterado", ex.Message);
+        Assert.Contains("arquive ou mova para outro banco", ex.Message); // diz o que o usuário pode fazer
     }
 
     [Fact]
@@ -168,7 +173,12 @@ public sealed class NotionApiTests : IDisposable
         var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
 
         Assert.Equal(TipoDeFalhaExterna.Incompleta, ex.Tipo);
-        Assert.True(_servidor.Recebidas.Count <= 150);
+        Assert.Equal(NotionApi.LimiteDePaginas, _servidor.Recebidas.Count); // para exatamente no limite
+        Assert.Equal(15_000, NotionApi.LimiteDeItens);
+        Assert.Contains("150 páginas", ex.Message);
+        Assert.Contains("15.000 itens", ex.Message);
+        Assert.Contains("Nada foi alterado", ex.Message);
+        Assert.Contains("arquive ou mova para outro banco", ex.Message);
     }
 
     [Fact]

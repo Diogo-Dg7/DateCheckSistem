@@ -110,7 +110,8 @@ public sealed class SincronizacaoExternaService : ISincronizacaoExternaService
         catch (FonteExternaException ex)
         {
             // Nenhuma lista parcial chega ao repositório: o banco local fica exatamente como estava.
-            _logger.LogWarning("Falha na sincronização com {Origem}: {Tipo}.", _fonte.Origem, ex.Tipo);
+            // A mensagem é a mesma que aparece nas Configurações e nunca contém segredos (ver FonteExternaException).
+            _logger.LogWarning("Falha na sincronização com {Origem}: {Tipo}. {Mensagem}", _fonte.Origem, ex.Tipo, ex.Message);
             if (ex.CausaOriginal is not null)
                 _logger.LogDebug(ex.CausaOriginal, "Causa da falha de sincronização.");
 

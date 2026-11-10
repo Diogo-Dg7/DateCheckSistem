@@ -26,8 +26,17 @@ public sealed class NotionApi : INotionApi
     /// <summary>Máximo aceito pelo Notion por página de resultados.</summary>
     public const int TamanhoDaPagina = 100;
 
-    // O Notion limita uma consulta a 10 mil resultados (100 páginas de 100): passar disso seria laço sem fim.
-    private const int MaximoDePaginas = 150;
+    /// <summary>
+    /// Máximo de páginas de resultados que o DateCheck percorre numa consulta (150 × 100 = 15.000 itens). O Notion
+    /// já limita uma consulta a 10.000 resultados e avisa com <c>request_status: incomplete</c>; este teto é só a
+    /// rede de segurança contra um laço sem fim se o cursor nunca acabar. Passou dele, a sincronização falha inteira.
+    /// </summary>
+    public const int LimiteDePaginas = 150;
+
+    public const int LimiteDeItens = LimiteDePaginas * TamanhoDaPagina;
+
+    /// <summary>Limite de resultados de uma consulta, imposto pelo próprio Notion.</summary>
+    public const int LimiteDoNotionPorConsulta = 10_000;
 
     private static readonly JsonSerializerOptions OpcoesDeEscrita = new()
     {
@@ -136,7 +145,7 @@ public sealed class NotionApi : INotionApi
         var itens = new List<Agendamento>();
         string? cursor = null;
 
-        for (var pagina = 1; pagina <= MaximoDePaginas; pagina++)
+        for (var pagina = 1; pagina <= LimiteDePaginas; pagina++)
         {
             var corpo = JsonSerializer.Serialize(MontarCorpoDaConsulta(configuracao.PropriedadeData, de, ate, cursor), OpcoesDeEscrita);
             using var documento = await EnviarAsync(HttpMethod.Post, caminho, token, corpo, cancellationToken);
@@ -147,7 +156,9 @@ public sealed class NotionApi : INotionApi
                 && Texto(situacao, "type") == "incomplete")
                 throw new FonteExternaException(
                     TipoDeFalhaExterna.Incompleta,
-                    "O Notion não entregou todos os itens dessa consulta (limite de resultados). Nada foi alterado no DateCheck.");
+                    $"O Notion não entregou todos os itens: ele limita cada consulta a {LimiteDoNotionPorConsulta:N0} resultados e esse banco tem mais "
+                    + "do que isso entre 90 dias atrás e 365 dias à frente. Nada foi alterado no DateCheck. Para resolver, reduza o banco: "
+                    + "arquive ou mova para outro banco os itens que você não precisa ver no calendário.");
 
             if (!raiz.TryGetProperty("results", out var resultados) || resultados.ValueKind != JsonValueKind.Array)
                 throw new FonteExternaException(TipoDeFalhaExterna.RespostaInvalida, "Resposta inesperada do Notion (sem resultados).");
@@ -170,7 +181,10 @@ public sealed class NotionApi : INotionApi
         }
 
         throw new FonteExternaException(
-            TipoDeFalhaExterna.Incompleta, "A consulta ao Notion passou do limite de páginas. Nada foi alterado no DateCheck.");
+            TipoDeFalhaExterna.Incompleta,
+            $"A consulta ao Notion passou de {LimiteDePaginas} páginas ({LimiteDeItens:N0} itens), o máximo que o DateCheck aceita de uma vez. "
+            + "Nada foi alterado no DateCheck. Para resolver, reduza o banco: arquive ou mova para outro banco "
+            + "os itens que você não precisa ver no calendário.");
     }
 
     private static object MontarCorpoDaConsulta(string propriedadeDeData, DateOnly de, DateOnly ate, string? cursor) => new
