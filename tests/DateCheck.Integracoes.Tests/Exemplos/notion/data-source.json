@@ -1,0 +1,108 @@
+{
+  "object": "data_source",
+  "id": "ds-0001",
+  "in_trash": false,
+  "title": [
+    {
+      "type": "text",
+      "text": {
+        "content": "Tarefas"
+      },
+      "plain_text": "Tarefas"
+    }
+  ],
+  "properties": {
+    "Nome": {
+      "id": "title",
+      "name": "Nome",
+      "description": null,
+      "type": "title",
+      "title": {}
+    },
+    "Data": {
+      "id": "d1",
+      "name": "Data",
+      "description": null,
+      "type": "date",
+      "date": {}
+    },
+    "Prazo": {
+      "id": "d2",
+      "name": "Prazo",
+      "description": null,
+      "type": "date",
+      "date": {}
+    },
+    "Feito": {
+      "id": "c1",
+      "name": "Feito",
+      "description": null,
+      "type": "checkbox",
+      "checkbox": {}
+    },
+    "Status": {
+      "id": "s1",
+      "name": "Status",
+      "description": null,
+      "type": "status",
+      "status": {
+        "default_option": null,
+        "options": [
+          {
+            "id": "o1",
+            "name": "Não iniciado",
+            "color": "default",
+            "description": null
+          },
+          {
+            "id": "o2",
+            "name": "Em andamento",
+            "color": "blue",
+            "description": null
+          },
+          {
+            "id": "o3",
+            "name": "Concluído",
+            "color": "green",
+            "description": null
+          }
+        ],
+        "groups": [
+          {
+            "id": "g1",
+            "name": "To-do",
+            "color": "gray",
+            "option_ids": [
+              "o1"
+            ]
+          },
+          {
+            "id": "g2",
+            "name": "In progress",
+            "color": "blue",
+            "option_ids": [
+              "o2"
+            ]
+          },
+          {
+            "id": "g3",
+            "name": "Complete",
+            "color": "green",
+            "option_ids": [
+              "o3"
+            ]
+          }
+        ]
+      }
+    },
+    "Categoria": {
+      "id": "k1",
+      "name": "Categoria",
+      "description": null,
+      "type": "select",
+      "select": {
+        "options": []
+      }
+    }
+  }
+}
