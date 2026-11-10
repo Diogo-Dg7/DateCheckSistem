@@ -6,33 +6,147 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:ConfiguracoesViewModel}"
-        Title="Configurações" Width="460" SizeToContent="Height" ResizeMode="NoResize"
+        Title="Configurações" Width="600" SizeToContent="Height" MaxHeight="760" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
-    <StackPanel Margin="24,16,24,20">
-        <TextBlock Text="Avisos de compromissos" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+    <Window.Resources>
+        <Style x:Key="Rotulo" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,10,0,4" />
+            <Setter Property="Foreground" Value="{StaticResource TextoSecundario}" />
+        </Style>
+    </Window.Resources>
 
-        <StackPanel Orientation="Horizontal">
-            <TextBlock Text="Avisar" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <TextBox Text="{Binding MinutosAntes, UpdateSourceTrigger=PropertyChanged}" Width="64" MaxLength="4"
-                     HorizontalContentAlignment="Right" />
-            <TextBlock Text="minutos antes de cada compromisso" VerticalAlignment="Center" Margin="8,0,0,0" />
-        </StackPanel>
-        <TextBlock Text="Use 0 para avisar só na hora em que o compromisso começa."
-                   Foreground="{StaticResource TextoSecundario}" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap" />
+    <Grid Margin="24,16,24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-        <Separator Margin="0,18,0,12" />
+        <TabControl Grid.Row="0">
+            <!-- Aba geral: valores aplicados pelo botão Salvar -->
+            <TabItem Header="Geral">
+                <StackPanel Margin="12,12,12,8">
+                    <TextBlock Text="Avisos de compromissos" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
 
-        <TextBlock Text="Aplicativo" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
-        <CheckBox Content="Iniciar com o Windows" IsChecked="{Binding IniciarComWindows}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Avisar" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Text="{Binding MinutosAntes, UpdateSourceTrigger=PropertyChanged}" Width="64" MaxLength="4"
+                                 HorizontalContentAlignment="Right" />
+                        <TextBlock Text="minutos antes de cada compromisso" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="Use 0 para avisar só na hora em que o compromisso começa."
+                               Foreground="{StaticResource TextoSecundario}" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap" />
 
-        <TextBlock Margin="0,18,0,0" Foreground="{StaticResource TextoSecundario}" FontSize="12" TextWrapping="Wrap">
-            <Run Text="As preferências ficam em" />
-            <Run Text="{Binding LocalDoArquivo, Mode=OneWay}" />
-        </TextBlock>
+                    <Separator Margin="0,18,0,12" />
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                    <TextBlock Text="Aplicativo" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <CheckBox Content="Iniciar com o Windows" IsChecked="{Binding IniciarComWindows}" />
+
+                    <TextBlock Margin="0,18,0,0" Foreground="{StaticResource TextoSecundario}" FontSize="12" TextWrapping="Wrap">
+                        <Run Text="As preferências ficam em" />
+                        <Run Text="{Binding LocalDoArquivo, Mode=OneWay}" />
+                    </TextBlock>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Aba Notion: as ações valem na hora (não dependem do botão Salvar) -->
+            <TabItem Header="Notion">
+                <ScrollViewer x:Name="AbaNotion" VerticalScrollBarVisibility="Auto" MaxHeight="520"
+                              d:DataContext="{d:DesignInstance Type=vm:NotionConfiguracoesViewModel}">
+                    <StackPanel Margin="12,12,16,8">
+                        <TextBlock Text="Compromissos do Notion no calendário" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{StaticResource TextoSecundario}" FontSize="12">
+                            O que você cadastra com data num banco do Notion aparece aqui, somente para leitura (o DateCheck nunca escreve no Notion).
+                            1) Crie uma integração interna em notion.so/my-integrations e copie o token.
+                            2) No Notion, abra o banco, clique em "…" &gt; Conexões e conecte a integração.
+                            3) Cole o token e o link do banco abaixo.
+                        </TextBlock>
+
+                        <!-- Estado -->
+                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="{Binding ResumoDaConexao}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding LinhaDaSincronizacao}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding LinhaDeErro}" Margin="0,4,0,0" TextWrapping="Wrap"
+                                           Foreground="{StaticResource Alerta}" FontWeight="SemiBold"
+                                           Visibility="{Binding TemErro, Converter={StaticResource BoolParaVisibilidade}}" />
+                                <TextBlock Text="{Binding ResultadoDoTeste}" Margin="0,4,0,0" TextWrapping="Wrap"
+                                           Foreground="{StaticResource TextoSecundario}" />
+                            </StackPanel>
+                        </Border>
+
+                        <WrapPanel Margin="0,10,0,0"
+                                   Visibility="{Binding Conectado, Converter={StaticResource BoolParaVisibilidade}}">
+                            <Button Content="Testar conexão" Command="{Binding TestarConexaoCommand}" Style="{StaticResource BotaoPequeno}" />
+                            <Button Content="Sincronizar agora" Command="{Binding SincronizarAgoraCommand}" Style="{StaticResource BotaoPequeno}" />
+                            <Button Content="Desconectar" Command="{Binding DesconectarCommand}" Style="{StaticResource BotaoPequeno}" />
+                        </WrapPanel>
+
+                        <Separator Margin="0,14,0,6" />
+
+                        <!-- Conectar ou reconectar -->
+                        <TextBlock Text="Conectar ou reconectar" FontWeight="SemiBold" />
+
+                        <TextBlock Text="Token da integração" Style="{StaticResource Rotulo}" />
+                        <PasswordBox x:Name="CampoToken" MaxLength="200" />
+
+                        <TextBlock Text="Link do banco de dados" Style="{StaticResource Rotulo}" />
+                        <TextBox Text="{Binding LinkDoBanco, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Button Content="Carregar propriedades" Command="{Binding CarregarBancoCommand}"
+                                Style="{StaticResource BotaoPequeno}" HorizontalAlignment="Left" Margin="0,10,0,0" />
+
+                        <StackPanel Visibility="{Binding MostrarEscolhas, Converter={StaticResource BoolParaVisibilidade}}">
+                            <TextBlock Margin="0,12,0,0" FontWeight="SemiBold">
+                                <Run Text="Banco:" />
+                                <Run Text="{Binding NomeDoBancoCarregado, Mode=OneWay}" />
+                            </TextBlock>
+
+                            <StackPanel Visibility="{Binding MostrarEscolhaDeFonte, Converter={StaticResource BoolParaVisibilidade}}">
+                                <TextBlock Text="Fonte de dados do banco" Style="{StaticResource Rotulo}" />
+                                <ComboBox ItemsSource="{Binding FontesDeDados}" SelectedItem="{Binding FonteEscolhida}"
+                                          DisplayMemberPath="Nome" />
+                            </StackPanel>
+
+                            <TextBlock Text="Propriedade de data (obrigatória)" Style="{StaticResource Rotulo}" />
+                            <ComboBox ItemsSource="{Binding PropriedadesDeData}" SelectedItem="{Binding PropriedadeDataEscolhida}"
+                                      DisplayMemberPath="Nome" />
+
+                            <TextBlock Text="O que indica &quot;concluído&quot; (opcional)" Style="{StaticResource Rotulo}" />
+                            <ComboBox ItemsSource="{Binding OpcoesDeConclusao}" SelectedItem="{Binding ConclusaoEscolhida}"
+                                      DisplayMemberPath="Texto" />
+
+                            <StackPanel Visibility="{Binding MostrarValorConcluido, Converter={StaticResource BoolParaVisibilidade}}">
+                                <TextBlock Text="Valor do status que significa concluído" Style="{StaticResource Rotulo}" />
+                                <ComboBox ItemsSource="{Binding OpcoesDeStatus}" SelectedItem="{Binding ValorConcluidoEscolhido}" />
+                            </StackPanel>
+
+                            <Button Content="Conectar e sincronizar" Command="{Binding ConectarCommand}"
+                                    Style="{StaticResource BotaoPequeno}" HorizontalAlignment="Left" Margin="0,14,0,0"
+                                    Background="{StaticResource Destaque}" Foreground="White" />
+                        </StackPanel>
+
+                        <Separator Margin="0,14,0,6" />
+
+                        <!-- Intervalo -->
+                        <TextBlock Text="Intervalo da sincronização" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="A cada" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBox Text="{Binding IntervaloEmMinutos, UpdateSourceTrigger=PropertyChanged}" Width="56" MaxLength="2"
+                                     HorizontalContentAlignment="Right" />
+                            <TextBlock Text="minutos (de 5 a 60)" VerticalAlignment="Center" Margin="8,0,12,0" />
+                            <Button Content="Salvar intervalo" Command="{Binding SalvarIntervaloCommand}" Style="{StaticResource BotaoPequeno}" />
+                        </StackPanel>
+
+                        <TextBlock Margin="0,14,0,0" Foreground="{StaticResource TextoSecundario}" FontSize="12" TextWrapping="Wrap"
+                                   Text="O token fica protegido pelo Windows (DPAPI), só para o seu usuário, e nunca é mostrado nem gravado nas preferências. As ações desta aba valem na hora." />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Content="Cancelar" IsCancel="True" Command="{Binding CancelarCommand}" MinWidth="90" Margin="0,0,8,0" />
             <Button Content="Salvar" IsDefault="True" Command="{Binding SalvarCommand}" MinWidth="90" />
         </StackPanel>
-    </StackPanel>
+    </Grid>
 </Window>

@@ -40,9 +40,10 @@ public sealed class DialogService : IDialogService
 
     public bool AbrirConfiguracoes()
     {
-        var viewModel = _services.GetRequiredService<ConfiguracoesViewModel>();
+        var geral = _services.GetRequiredService<ConfiguracoesViewModel>();
+        var notion = _services.GetRequiredService<NotionConfiguracoesViewModel>();
 
-        var janela = new ConfiguracoesWindow(viewModel) { Owner = Dono() };
+        var janela = new ConfiguracoesWindow(geral, notion) { Owner = Dono() };
         return janela.ShowDialog() == true;
     }
 

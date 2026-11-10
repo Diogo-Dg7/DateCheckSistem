@@ -141,7 +141,7 @@ public sealed class SincronizacaoNotionTests
         _sincronizacao.DispararReconexao();
 
         var (titulo, mensagem) = Assert.Single(bandeja.Baloes);
-        Assert.Equal("DateCheck", titulo);
+        Assert.Equal(DateCheck.Desktop.Servicos.AmbienteDeExecucao.Atual.TituloDoApp, titulo);
         Assert.Equal(ReacoesDaSincronizacao.MensagemDeReconexao, mensagem);
         Assert.Contains("Configurações", mensagem);
     }

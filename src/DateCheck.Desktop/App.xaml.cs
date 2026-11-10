@@ -5,7 +5,9 @@ using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Threading;
 using DateCheck.Application;
+using DateCheck.Application.Interfaces;
 using DateCheck.Desktop.Configuracoes;
+using DateCheck.Desktop.Integracoes;
 using DateCheck.Desktop.Navegacao;
 using DateCheck.Desktop.Notificacoes;
 using DateCheck.Desktop.Servicos;
@@ -29,6 +31,7 @@ public partial class App : System.Windows.Application
     private IconeDaBandeja? _bandeja;
     private GerenciadorDeToast? _toast;
     private ControleDaJanela? _controle;
+    private ReacoesDaSincronizacao? _reacoes;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -74,7 +77,11 @@ public partial class App : System.Windows.Application
             // Se o início com o Windows está ligado, mantém o caminho do registro apontando para este executável.
             services.GetRequiredService<InicioComWindowsService>().CorrigirCaminhoSeNecessario();
 
-            await _host.StartAsync(); // inicia as notificações em segundo plano
+            // Criadas aqui, na thread da interface (capturam o contexto dela) e antes do segundo plano começar,
+            // para já ouvirem a primeira sincronização.
+            _reacoes = services.GetRequiredService<ReacoesDaSincronizacao>();
+
+            await _host.StartAsync(); // inicia as notificações e a sincronização em segundo plano
 
             var janela = services.GetRequiredService<MainWindow>();
             MainWindow = janela;
@@ -147,6 +154,15 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<INotificador, AppNotificacaoNotificador>();
         builder.Services.AddHostedService<NotificacaoService>();
 
+        // Integrações (opcionais: sem Notion configurado nada roda em segundo plano). O cofre de segredos e o resto
+        // ficam na pasta de dados do ambiente: DateCheck em produção, DateCheck-Dev em desenvolvimento.
+        DateCheck.Integracoes.DependencyInjection.AddIntegracoes(builder.Services, ambiente.PastaDeDados);
+        builder.Services.AddSingleton<IConfiguracaoNotion, ConfiguracaoNotionDasPreferencias>();
+        builder.Services.AddSincronizacaoNotion();
+        builder.Services.AddSingleton<IAvisoDeBandeja>(sp => sp.GetRequiredService<IconeDaBandeja>());
+        builder.Services.AddSingleton<ReacoesDaSincronizacao>();
+        builder.Services.AddHostedService<SincronizacaoNotionBackgroundService>();
+
         // Telas.
         builder.Services.AddSingleton<NavegacaoService>();
         builder.Services.AddSingleton<INavegacao>(sp => sp.GetRequiredService<NavegacaoService>());
@@ -155,6 +171,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddTransient<AgendamentoFormViewModel>();
         builder.Services.AddTransient<ConfiguracoesViewModel>();
+        builder.Services.AddTransient<NotionConfiguracoesViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 
         return builder.Build();

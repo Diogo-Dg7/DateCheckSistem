@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DateCheck.Application\DateCheck.Application.csproj" />
     <ProjectReference Include="..\DateCheck.Infrastructure\DateCheck.Infrastructure.csproj" />
+    <ProjectReference Include="..\DateCheck.Integracoes\DateCheck.Integracoes.csproj" />
   </ItemGroup>
 
   <ItemGroup>

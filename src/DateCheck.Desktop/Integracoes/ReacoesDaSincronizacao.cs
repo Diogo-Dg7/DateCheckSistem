@@ -63,7 +63,7 @@ public sealed class ReacoesDaSincronizacao : IDisposable
 
     private void AoPrecisarReconectar() => NaInterface(() =>
     {
-        _bandeja.MostrarBalao("DateCheck", MensagemDeReconexao);
+        _bandeja.MostrarBalao(AmbienteDeExecucao.Atual.TituloDoApp, MensagemDeReconexao);
         return Task.CompletedTask;
     });
 
