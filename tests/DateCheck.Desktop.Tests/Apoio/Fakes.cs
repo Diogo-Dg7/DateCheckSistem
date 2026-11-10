@@ -356,3 +356,71 @@ public sealed class SincronizacaoFalsa : DateCheck.Application.Servicos.ISincron
     public Task<TResultado> ExecutarSemSincronizacaoAsync<TResultado>(
         Func<Task<TResultado>> acao, CancellationToken cancellationToken = default) => acao();
 }
+
+/// <summary>Serviço do Notion falso para a aba das Configurações.</summary>
+public sealed class NotionServiceFalso : DateCheck.Application.Notion.INotionService
+{
+    public bool EstaConectado { get; set; }
+
+    public DateCheck.Application.Notion.ConfiguracaoNotion? ConfiguracaoAtual { get; set; }
+
+    public DateCheck.Application.Notion.EstruturaDoBancoNotion? Estrutura { get; set; }
+
+    public Exception? Falha { get; set; }
+
+    public string ResultadoDoTeste { get; set; } = "Conectado como DateCheck (Casa). Banco \"Tarefas\" acessível.";
+
+    public int Removidos { get; set; }
+
+    public List<(string Token, string Link)> Inspecoes { get; } = [];
+
+    public List<(string Token, string DataSourceId, string PropriedadeData, DateCheck.Application.Notion.ConclusaoNotion? Conclusao)> Conexoes { get; } = [];
+
+    public int Testes { get; private set; }
+
+    public int Desconexoes { get; private set; }
+
+    public Task<DateCheck.Application.Notion.EstruturaDoBancoNotion> InspecionarAsync(
+        string token, string linkOuIdDoBanco, CancellationToken cancellationToken = default)
+    {
+        Inspecoes.Add((token, linkOuIdDoBanco));
+        if (Falha is not null)
+            throw Falha;
+        return Task.FromResult(Estrutura ?? throw new InvalidOperationException("Estrutura não configurada"));
+    }
+
+    public Task ConectarAsync(
+        string token,
+        DateCheck.Application.Notion.EstruturaDoBancoNotion estrutura,
+        string dataSourceId,
+        string propriedadeData,
+        DateCheck.Application.Notion.ConclusaoNotion? conclusao,
+        CancellationToken cancellationToken = default)
+    {
+        if (Falha is not null)
+            throw Falha;
+
+        Conexoes.Add((token, dataSourceId, propriedadeData, conclusao));
+        EstaConectado = true;
+        ConfiguracaoAtual = new DateCheck.Application.Notion.ConfiguracaoNotion(estrutura.DatabaseId, dataSourceId, propriedadeData, conclusao);
+        return Task.CompletedTask;
+    }
+
+    public Task<string> TestarConexaoAsync(CancellationToken cancellationToken = default)
+    {
+        Testes++;
+        if (Falha is not null)
+            throw Falha;
+        return Task.FromResult(ResultadoDoTeste);
+    }
+
+    public Task<int> DesconectarAsync(CancellationToken cancellationToken = default)
+    {
+        Desconexoes++;
+        if (Falha is not null)
+            throw Falha;
+        EstaConectado = false;
+        ConfiguracaoAtual = null;
+        return Task.FromResult(Removidos);
+    }
+}
