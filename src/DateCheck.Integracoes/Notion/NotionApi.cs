@@ -321,7 +321,7 @@ public sealed class NotionApi : INotionApi
             HttpStatusCode.Unauthorized => new(TipoDeFalhaExterna.NaoAutorizado,
                 "O Notion recusou o token. Reconecte o Notion em Configurações."),
             HttpStatusCode.Forbidden => new(TipoDeFalhaExterna.SemAcesso,
-                "A integração não tem permissão para isso no Notion. Confira as permissões dela em notion.so/my-integrations."),
+                "A conexão não tem permissão para isso no Notion. Confira as permissões dela na aba Configuration, em app.notion.com/developers/connections."),
             HttpStatusCode.NotFound => new(TipoDeFalhaExterna.SemAcesso,
                 "O Notion não encontrou o banco. Confira o link e se a integração está conectada a ele (menu \"…\" > Conexões)."),
             HttpStatusCode.TooManyRequests => new(TipoDeFalhaExterna.LimiteExcedido,

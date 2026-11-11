@@ -135,6 +135,18 @@ public class NotionServicosTests
         Assert.Null(_configuracao.Obter());
     }
 
+    [Fact]
+    public async Task Inspecionar_SemToken_IndicaOCaminhoAtualDoNotion()
+    {
+        // Documentação oficial do Notion (developers.notion.com, "Internal connections"): o portal é
+        // app.notion.com/developers/connections; notion.so/my-integrations é o caminho antigo.
+        var ex = await Assert.ThrowsAsync<AplicacaoException>(
+            () => _servico.InspecionarAsync("", "https://www.notion.so/Tarefas-0123456789abcdef0123456789abcdef"));
+
+        Assert.Contains("app.notion.com/developers/connections", ex.Message);
+        Assert.DoesNotContain("my-integrations", ex.Message);
+    }
+
     [Theory]
     [InlineData("", "https://www.notion.so/Tarefas-0123456789abcdef0123456789abcdef")]
     [InlineData("   ", "https://www.notion.so/Tarefas-0123456789abcdef0123456789abcdef")]

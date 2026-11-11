@@ -56,9 +56,9 @@
                         <TextBlock Text="Compromissos do Notion no calendário" FontSize="16" FontWeight="SemiBold" />
                         <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{StaticResource TextoSecundario}" FontSize="12">
                             O que você cadastra com data num banco do Notion aparece aqui, somente para leitura (o DateCheck nunca escreve no Notion).
-                            1) Crie uma integração interna em notion.so/my-integrations e copie o token.
-                            2) No Notion, abra o banco, clique em "…" &gt; Conexões e conecte a integração.
-                            3) Cole o token e o link do banco abaixo.
+                            1) No Notion, abra app.notion.com/developers/connections, vá em Internal connections e crie uma conexão ("Nova conexão" / Create a new connection). Na aba Configuration, copie o token de API (basta a permissão de ler conteúdo).
+                            2) Abra o banco no Notion, clique em "…" &gt; Conexões (Connections) &gt; Adicionar conexão (Add connection) e escolha a conexão. Sem isso, o Notion responde "não encontrado".
+                            3) Copie o link do banco e cole abaixo, junto com o token.
                         </TextBlock>
 
                         <!-- Estado -->
@@ -86,7 +86,7 @@
                         <!-- Conectar ou reconectar -->
                         <TextBlock Text="Conectar ou reconectar" FontWeight="SemiBold" />
 
-                        <TextBlock Text="Token da integração" Style="{StaticResource Rotulo}" />
+                        <TextBlock Text="Token de API" Style="{StaticResource Rotulo}" />
                         <PasswordBox x:Name="CampoToken" MaxLength="200" />
 
                         <TextBlock Text="Link do banco de dados" Style="{StaticResource Rotulo}" />

@@ -307,6 +307,17 @@ public sealed class NotionApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Consulta403_IndicaOCaminhoAtualDasPermissoes()
+    {
+        Responder(HttpStatusCode.Forbidden, "erro-403.json");
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
+
+        Assert.Contains("app.notion.com/developers/connections", ex.Message);
+        Assert.DoesNotContain("my-integrations", ex.Message);
+    }
+
+    [Fact]
     public async Task Http429ComRetryAfter_EsperaETentaDeNovo()
     {
         Responder(HttpStatusCode.TooManyRequests, "erro-429.json", TimeSpan.FromSeconds(2));

@@ -114,7 +114,7 @@ public sealed class NotionService : INotionService
     private static string ValidarToken(string? token)
     {
         if (string.IsNullOrWhiteSpace(token))
-            throw new AplicacaoException("Cole o token da integração do Notion (notion.so/my-integrations).");
+            throw new AplicacaoException("Cole o token de API da conexão do Notion (aba Configuration em app.notion.com/developers/connections).");
 
         return token.Trim();
     }
