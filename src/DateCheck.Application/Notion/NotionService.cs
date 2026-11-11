@@ -35,7 +35,7 @@ public sealed class NotionService : INotionService
     public Task<EstruturaDoBancoNotion> InspecionarAsync(
         string token, string linkOuIdDoBanco, CancellationToken cancellationToken = default)
     {
-        var tokenLimpo = ValidarToken(token);
+        var tokenLimpo = ResolverToken(token);
 
         var id = NotionLinks.ExtrairIdDoBanco(linkOuIdDoBanco)
             ?? throw new AplicacaoException(
@@ -52,7 +52,8 @@ public sealed class NotionService : INotionService
         ConclusaoNotion? conclusao,
         CancellationToken cancellationToken = default)
     {
-        var tokenLimpo = ValidarToken(token);
+        var tokenLimpo = ResolverToken(token);
+        var tokenNovo = !string.IsNullOrWhiteSpace(token);
 
         var fonte = estrutura.FontesDeDados.FirstOrDefault(f => f.Id == dataSourceId)
             ?? throw new AplicacaoException("Escolha um dos data sources do banco.");
@@ -64,7 +65,9 @@ public sealed class NotionService : INotionService
             ValidarConclusao(fonte, conclusao);
 
         // Só grava depois de validar tudo: uma escolha inválida não deixa token nem configuração pela metade.
-        _cofre.Gravar(SegredosDoNotion.Token, tokenLimpo);
+        // Sem token digitado, o do cofre foi o usado: não há o que regravar.
+        if (tokenNovo)
+            _cofre.Gravar(SegredosDoNotion.Token, tokenLimpo);
         _configuracao.Salvar(new ConfiguracaoNotion(estrutura.DatabaseId, dataSourceId, propriedadeData, conclusao));
         _sincronizacao.Reiniciar();
         return Task.CompletedTask;
@@ -111,12 +114,20 @@ public sealed class NotionService : INotionService
         }, cancellationToken);
     }
 
-    private static string ValidarToken(string? token)
+    /// <summary>
+    /// O token digitado, se houver; senão o que já está no cofre (ele nunca volta para a tela, então reconfigurar
+    /// o banco ou as propriedades não exige colar de novo). Sem nenhum dos dois, pede o token.
+    /// </summary>
+    private string ResolverToken(string? digitado)
     {
-        if (string.IsNullOrWhiteSpace(token))
-            throw new AplicacaoException("Cole o token de API da conexão do Notion (aba Configuration em app.notion.com/developers/connections).");
+        if (!string.IsNullOrWhiteSpace(digitado))
+            return digitado.Trim();
 
-        return token.Trim();
+        var salvo = _cofre.Ler(SegredosDoNotion.Token);
+        if (!string.IsNullOrWhiteSpace(salvo))
+            return salvo;
+
+        throw new AplicacaoException("Cole o token de API da conexão do Notion (aba Configuration em app.notion.com/developers/connections).");
     }
 
     private static void ValidarConclusao(FonteDeDadosNotion fonte, ConclusaoNotion conclusao)

@@ -10,13 +10,14 @@ public interface INotionService
     ConfiguracaoNotion? ConfiguracaoAtual { get; }
 
     /// <summary>
-    /// Valida o token e o link e lista data sources e propriedades. Não grava nada.
+    /// Valida o token e o link e lista data sources e propriedades. Não grava nada. Com o token em branco usa o
+    /// que já está no cofre.
     /// </summary>
     Task<EstruturaDoBancoNotion> InspecionarAsync(string token, string linkOuIdDoBanco, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Valida as escolhas contra a estrutura, guarda o token no cofre e a configuração nas preferências.
-    /// Nada é gravado se alguma escolha for inválida.
+    /// Nada é gravado se alguma escolha for inválida. Com o token em branco mantém o que já está no cofre.
     /// </summary>
     Task ConectarAsync(
         string token,

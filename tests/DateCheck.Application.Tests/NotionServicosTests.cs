@@ -147,6 +147,89 @@ public class NotionServicosTests
         Assert.DoesNotContain("my-integrations", ex.Message);
     }
 
+    // Token salvo no cofre: com o campo em branco, o app usa o que já está guardado (o token nunca volta para a tela).
+
+    private const string LinkDoBanco = "https://www.notion.so/Tarefas-0123456789abcdef0123456789abcdef";
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Inspecionar_SemTokenDigitado_UsaOTokenDoCofre(string digitado)
+    {
+        Conectar();
+
+        var estrutura = await _servico.InspecionarAsync(digitado, LinkDoBanco);
+
+        Assert.Equal("01234567-89ab-cdef-0123-456789abcdef", estrutura.DatabaseId);
+        Assert.Equal(Token, _api.TokensRecebidos.Single());
+    }
+
+    [Fact]
+    public async Task Inspecionar_ComTokenDigitado_PrefereODigitadoAoDoCofre()
+    {
+        Conectar();
+
+        await _servico.InspecionarAsync("ntn_token_novo_digitado", LinkDoBanco);
+
+        Assert.Equal("ntn_token_novo_digitado", _api.TokensRecebidos.Single());
+        Assert.Equal(Token, _cofre.Ler(SegredosDoNotion.Token)); // inspecionar continua sem gravar
+    }
+
+    [Fact]
+    public async Task Inspecionar_SemTokenDigitadoESemCofre_Recusa()
+    {
+        await Assert.ThrowsAsync<AplicacaoException>(() => _servico.InspecionarAsync("", LinkDoBanco));
+
+        Assert.Equal(0, _api.ChamadasDeEstrutura);
+    }
+
+    [Fact]
+    public async Task Conectar_SemTokenDigitado_UsaOTokenDoCofreESalvaAConfiguracao()
+    {
+        Conectar();
+
+        await _servico.ConectarAsync("", Estrutura, "ds-1", "Prazo", new ConclusaoNotion("Feito", TipoDeConclusaoNotion.Checkbox));
+
+        Assert.Equal(Token, _cofre.Ler(SegredosDoNotion.Token)); // o token salvo continua o mesmo
+        var config = _configuracao.Obter()!;
+        Assert.Equal("banco-original", config.DatabaseId);
+        Assert.Equal("Prazo", config.PropriedadeData);
+        Assert.Equal("Feito", config.Conclusao!.Propriedade);
+        Assert.True(_servico.EstaConectado);
+        Assert.Equal(SituacaoDaSincronizacao.Aguardando, _sincronizacao.Estado.Situacao);
+    }
+
+    [Fact]
+    public async Task Conectar_ComTokenDigitado_SubstituiOTokenDoCofre()
+    {
+        Conectar();
+
+        await _servico.ConectarAsync("ntn_token_novo_digitado", Estrutura, "ds-1", "Data", null);
+
+        Assert.Equal("ntn_token_novo_digitado", _cofre.Ler(SegredosDoNotion.Token));
+    }
+
+    [Fact]
+    public async Task Conectar_SemTokenDigitadoESemCofre_RecusaSemGravarNada()
+    {
+        await Assert.ThrowsAsync<AplicacaoException>(() => _servico.ConectarAsync("", Estrutura, "ds-1", "Data", null));
+
+        Assert.Null(_cofre.Ler(SegredosDoNotion.Token));
+        Assert.Null(_configuracao.Obter());
+    }
+
+    [Fact]
+    public async Task Conectar_SemTokenDigitado_ComEscolhaInvalida_NaoMudaNada()
+    {
+        Conectar();
+        var antes = _configuracao.Obter();
+
+        await Assert.ThrowsAsync<AplicacaoException>(() => _servico.ConectarAsync("", Estrutura, "ds-1", "Nome", null));
+
+        Assert.Equal(Token, _cofre.Ler(SegredosDoNotion.Token));
+        Assert.Same(antes, _configuracao.Obter());
+    }
+
     [Theory]
     [InlineData("", "https://www.notion.so/Tarefas-0123456789abcdef0123456789abcdef")]
     [InlineData("   ", "https://www.notion.so/Tarefas-0123456789abcdef0123456789abcdef")]
