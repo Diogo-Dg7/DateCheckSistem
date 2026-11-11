@@ -248,6 +248,90 @@ public class NotionConfiguracoesViewModelTests
         Assert.Equal(string.Empty, vm.Token);
     }
 
+    // ---------- token já salvo ----------
+
+    private const string LinkDoBanco = "https://www.notion.so/ws/Tarefas-0123456789abcdef0123456789abcdef";
+
+    [Fact]
+    public void TokenSalvo_ComCampoVazio_AvisaQueUsaOTokenJaSalvo()
+    {
+        _notion.TemTokenSalvo = true;
+
+        var vm = CriarVm();
+
+        Assert.True(vm.UsandoTokenSalvo);
+    }
+
+    [Fact]
+    public void TokenSalvo_SemTokenNoCofre_NaoAvisa()
+    {
+        var vm = CriarVm();
+
+        Assert.False(vm.UsandoTokenSalvo);
+    }
+
+    [Fact]
+    public void TokenSalvo_AoDigitarUmNovo_DeixaDeAvisarEVoltaAoApagar()
+    {
+        _notion.TemTokenSalvo = true;
+        var vm = CriarVm();
+        var avisos = new List<string?>();
+        vm.PropertyChanged += (_, e) => avisos.Add(e.PropertyName);
+
+        vm.Token = Token;
+        Assert.False(vm.UsandoTokenSalvo);
+        Assert.Contains(nameof(NotionConfiguracoesViewModel.UsandoTokenSalvo), avisos);
+
+        vm.Token = string.Empty;
+        Assert.True(vm.UsandoTokenSalvo);
+    }
+
+    [Fact]
+    public async Task TokenSalvo_CarregarComCampoVazio_NaoPedeOTokenEUsaOCofre()
+    {
+        _notion.TemTokenSalvo = true;
+        var vm = CriarVm();
+        vm.LinkDoBanco = LinkDoBanco;
+
+        await vm.CarregarBancoCommand.ExecuteAsync(null);
+
+        Assert.Equal(("", LinkDoBanco), _notion.Inspecoes.Single()); // o token nunca passa pela tela
+        Assert.Empty(_dialogos.Avisos);
+        Assert.Empty(_dialogos.Erros);
+        Assert.True(vm.MostrarEscolhas);
+    }
+
+    [Fact]
+    public async Task TokenSalvo_ReconectarSemColarToken_MantemOTokenEContinuaConectado()
+    {
+        _notion.TemTokenSalvo = true;
+        var vm = CriarVm();
+        vm.LinkDoBanco = LinkDoBanco;
+        await vm.CarregarBancoCommand.ExecuteAsync(null);
+        vm.PropriedadeDataEscolhida = vm.PropriedadesDeData.Single(p => p.Nome == "Prazo");
+
+        await vm.ConectarCommand.ExecuteAsync(null);
+
+        var conexao = Assert.Single(_notion.Conexoes);
+        Assert.Equal(("", "ds-1", "Prazo"), (conexao.Token, conexao.DataSourceId, conexao.PropriedadeData));
+        Assert.True(vm.Conectado);
+        Assert.True(vm.UsandoTokenSalvo); // o token salvo continua lá
+    }
+
+    [Fact]
+    public async Task TokenSalvo_AoDesconectar_DeixaDeAvisar()
+    {
+        _notion.TemTokenSalvo = true;
+        _notion.EstaConectado = true;
+        _dialogos.RespostaConfirmar = true;
+        var vm = CriarVm();
+        Assert.True(vm.UsandoTokenSalvo);
+
+        await vm.DesconectarCommand.ExecuteAsync(null);
+
+        Assert.False(vm.UsandoTokenSalvo);
+    }
+
     // ---------- testar, sincronizar, desconectar ----------
 
     [Fact]

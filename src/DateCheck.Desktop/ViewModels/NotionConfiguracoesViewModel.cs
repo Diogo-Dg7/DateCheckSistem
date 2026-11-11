@@ -61,7 +61,16 @@ public sealed partial class NotionConfiguracoesViewModel : ViewModelBase, IDispo
 
     /// <summary>Em memória só enquanto é digitado; apagado depois de conectar.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UsandoTokenSalvo))]
     private string _token = string.Empty;
+
+    private bool _temTokenSalvo;
+
+    /// <summary>
+    /// Campo do token em branco e já há um token no cofre: "Carregar propriedades" e "Conectar" usam esse. O valor do
+    /// token nunca volta para a tela; só este aviso.
+    /// </summary>
+    public bool UsandoTokenSalvo => Token.Length == 0 && _temTokenSalvo;
 
     [ObservableProperty]
     private string _linkDoBanco = string.Empty;
@@ -359,6 +368,8 @@ public sealed partial class NotionConfiguracoesViewModel : ViewModelBase, IDispo
     {
         var configuracao = _notion.ConfiguracaoAtual;
         Conectado = _notion.EstaConectado;
+        _temTokenSalvo = _notion.TemTokenSalvo;
+        OnPropertyChanged(nameof(UsandoTokenSalvo));
         ResumoDaConexao = Conectado && configuracao is not null
             ? $"Conectado. Propriedade de data: \"{configuracao.PropriedadeData}\"."
               + (configuracao.Conclusao is { } c ? $" Concluído: \"{c.Propriedade}\"." : " Todos entram como pendentes.")

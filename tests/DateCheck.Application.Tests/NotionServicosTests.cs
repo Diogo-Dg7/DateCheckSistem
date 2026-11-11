@@ -184,6 +184,21 @@ public class NotionServicosTests
     }
 
     [Fact]
+    public void TemTokenSalvo_RefleteOCofre_ESemExporOValor()
+    {
+        Assert.False(_servico.TemTokenSalvo);
+
+        _cofre.Gravar(SegredosDoNotion.Token, "   ");
+        Assert.False(_servico.TemTokenSalvo); // vazio não conta
+
+        _cofre.Gravar(SegredosDoNotion.Token, Token);
+        Assert.True(_servico.TemTokenSalvo);
+
+        _cofre.Apagar(SegredosDoNotion.Token);
+        Assert.False(_servico.TemTokenSalvo);
+    }
+
+    [Fact]
     public async Task Conectar_SemTokenDigitado_UsaOTokenDoCofreESalvaAConfiguracao()
     {
         Conectar();

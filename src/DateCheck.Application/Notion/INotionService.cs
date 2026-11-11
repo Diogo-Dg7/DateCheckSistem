@@ -6,6 +6,9 @@ public interface INotionService
     /// <summary>Há token e banco configurados.</summary>
     bool EstaConectado { get; }
 
+    /// <summary>Há um token no cofre (só isso: o valor nunca sai do serviço para a tela).</summary>
+    bool TemTokenSalvo { get; }
+
     /// <summary>A configuração salva (não secreta), ou nulo.</summary>
     ConfiguracaoNotion? ConfiguracaoAtual { get; }
 

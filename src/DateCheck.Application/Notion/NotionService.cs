@@ -30,6 +30,8 @@ public sealed class NotionService : INotionService
     public bool EstaConectado =>
         _configuracao.Obter() is not null && !string.IsNullOrEmpty(_cofre.Ler(SegredosDoNotion.Token));
 
+    public bool TemTokenSalvo => !string.IsNullOrWhiteSpace(_cofre.Ler(SegredosDoNotion.Token));
+
     public ConfiguracaoNotion? ConfiguracaoAtual => _configuracao.Obter();
 
     public Task<EstruturaDoBancoNotion> InspecionarAsync(

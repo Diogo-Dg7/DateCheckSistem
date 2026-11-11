@@ -362,6 +362,8 @@ public sealed class NotionServiceFalso : DateCheck.Application.Notion.INotionSer
 {
     public bool EstaConectado { get; set; }
 
+    public bool TemTokenSalvo { get; set; }
+
     public DateCheck.Application.Notion.ConfiguracaoNotion? ConfiguracaoAtual { get; set; }
 
     public DateCheck.Application.Notion.EstruturaDoBancoNotion? Estrutura { get; set; }
@@ -402,6 +404,8 @@ public sealed class NotionServiceFalso : DateCheck.Application.Notion.INotionSer
 
         Conexoes.Add((token, dataSourceId, propriedadeData, conclusao));
         EstaConectado = true;
+        if (!string.IsNullOrWhiteSpace(token))
+            TemTokenSalvo = true; // token em branco = o do cofre continua
         ConfiguracaoAtual = new DateCheck.Application.Notion.ConfiguracaoNotion(estrutura.DatabaseId, dataSourceId, propriedadeData, conclusao);
         return Task.CompletedTask;
     }
@@ -420,6 +424,7 @@ public sealed class NotionServiceFalso : DateCheck.Application.Notion.INotionSer
         if (Falha is not null)
             throw Falha;
         EstaConectado = false;
+        TemTokenSalvo = false;
         ConfiguracaoAtual = null;
         return Task.FromResult(Removidos);
     }

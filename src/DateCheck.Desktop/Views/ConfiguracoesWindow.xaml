@@ -88,6 +88,10 @@
 
                         <TextBlock Text="Token de API" Style="{StaticResource Rotulo}" />
                         <PasswordBox x:Name="CampoToken" MaxLength="200" />
+                        <TextBlock Text="Usando o token já salvo. Deixe em branco, ou cole outro para trocá-lo."
+                                   Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextoSecundario}"
+                                   Visibility="{Binding UsandoTokenSalvo, Converter={StaticResource BoolParaVisibilidade}}" />
 
                         <TextBlock Text="Link do banco de dados" Style="{StaticResource Rotulo}" />
                         <TextBox Text="{Binding LinkDoBanco, UpdateSourceTrigger=PropertyChanged}" />
