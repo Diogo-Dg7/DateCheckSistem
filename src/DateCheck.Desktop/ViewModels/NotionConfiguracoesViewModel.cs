@@ -34,6 +34,7 @@ public sealed partial class NotionConfiguracoesViewModel : ViewModelBase, IDispo
     private readonly SynchronizationContext? _contexto = SynchronizationContext.Current;
 
     private EstruturaDoBancoNotion? _estrutura;
+    private readonly List<string> _avisosDasEscolhasSalvas = [];
 
     public NotionConfiguracoesViewModel(
         INotionService notion,
@@ -159,6 +160,66 @@ public sealed partial class NotionConfiguracoesViewModel : ViewModelBase, IDispo
 
         PropriedadeDataEscolhida = PropriedadesDeData.FirstOrDefault();
         ConclusaoEscolhida = Nenhuma;
+
+        _avisosDasEscolhasSalvas.Clear();
+        if (value is not null)
+            AplicarEscolhasSalvas(value);
+    }
+
+    /// <summary>
+    /// Recarregar as propriedades do banco que já está conectado não pode zerar o que foi configurado (reconectar só
+    /// para trocar o token fazia os itens concluídos voltarem a pendentes). Se a data source é a salva, marca de novo a
+    /// data e o "concluído" de antes; o que sumiu ou mudou de tipo volta ao padrão e vira um aviso.
+    /// </summary>
+    private void AplicarEscolhasSalvas(FonteDeDadosNotion fonte)
+    {
+        var salva = _notion.ConfiguracaoAtual;
+        if (salva is null
+            || _estrutura is null
+            || !string.Equals(salva.DatabaseId, _estrutura.DatabaseId, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(salva.DataSourceId, fonte.Id, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var data = PropriedadesDeData.FirstOrDefault(p => p.Nome == salva.PropriedadeData);
+        if (data is not null)
+            PropriedadeDataEscolhida = data;
+        else
+            _avisosDasEscolhasSalvas.Add($"A propriedade de data \"{salva.PropriedadeData}\" não está mais no banco. Escolha outra.");
+
+        if (salva.Conclusao is not { } conclusao)
+            return;
+
+        var tipoDaPropriedade = conclusao.Tipo == TipoDeConclusaoNotion.Checkbox
+            ? TiposDePropriedadeNotion.Checkbox
+            : TiposDePropriedadeNotion.Status;
+        var opcao = OpcoesDeConclusao.FirstOrDefault(
+            o => o.Propriedade is { } p && p.Nome == conclusao.Propriedade && p.Tipo == tipoDaPropriedade);
+        if (opcao is null)
+        {
+            _avisosDasEscolhasSalvas.Add(
+                $"A propriedade de conclusão \"{conclusao.Propriedade}\" não foi encontrada ou mudou de tipo. "
+                + "Ela voltou para \"nenhuma\": conectar assim faz todos os itens entrarem como pendentes.");
+            return;
+        }
+
+        ConclusaoEscolhida = opcao;
+        if (conclusao.Tipo == TipoDeConclusaoNotion.Status && conclusao.ValorConcluido is { } valor)
+        {
+            if (OpcoesDeStatus.Contains(valor))
+                ValorConcluidoEscolhido = valor;
+            else
+                _avisosDasEscolhasSalvas.Add(
+                    $"A opção \"{valor}\" não existe mais em \"{conclusao.Propriedade}\". Escolha qual opção significa concluído.");
+        }
+    }
+
+    private FonteDeDadosNotion? FonteSalvaNoBanco(EstruturaDoBancoNotion estrutura)
+    {
+        var salva = _notion.ConfiguracaoAtual;
+        if (salva is null || !string.Equals(salva.DatabaseId, estrutura.DatabaseId, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return estrutura.FontesDeDados.FirstOrDefault(f => string.Equals(f.Id, salva.DataSourceId, StringComparison.OrdinalIgnoreCase));
     }
 
     partial void OnConclusaoEscolhidaChanged(OpcaoDeConclusao value)
@@ -194,11 +255,16 @@ public sealed partial class NotionConfiguracoesViewModel : ViewModelBase, IDispo
             OnPropertyChanged(nameof(MostrarEscolhas));
 
             FonteEscolhida = null; // força a atualização das listas mesmo se a escolha anterior era a mesma
-            FonteEscolhida = FontesDeDados.FirstOrDefault(f => f.PropriedadesDeData.Any()) ?? FontesDeDados.First();
+            FonteEscolhida = FonteSalvaNoBanco(estrutura)
+                ?? FontesDeDados.FirstOrDefault(f => f.PropriedadesDeData.Any())
+                ?? FontesDeDados.First();
 
             if (!estrutura.FontesDeDados.Any(f => f.PropriedadesDeData.Any()))
                 Dialogos.MostrarAviso(
                     "Esse banco não tem nenhuma propriedade do tipo data. Adicione uma coluna de data no Notion e carregue de novo.");
+            else if (_avisosDasEscolhasSalvas.Count > 0)
+                Dialogos.MostrarAviso(
+                    "Nem tudo que estava configurado foi encontrado no banco:\n- " + string.Join("\n- ", _avisosDasEscolhasSalvas));
         }
         finally
         {

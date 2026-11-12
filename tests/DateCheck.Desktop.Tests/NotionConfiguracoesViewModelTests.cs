@@ -133,6 +133,124 @@ public class NotionConfiguracoesViewModelTests
         Assert.Single(vm.OpcoesDeConclusao); // só "(nenhuma)": o outro data source não tem checkbox/status
     }
 
+    // ---------- recarregar um banco que já está conectado ----------
+
+    private static ConfiguracaoNotion Salva(string dataSourceId, string propriedadeData, ConclusaoNotion? conclusao) =>
+        new(Estrutura.DatabaseId, dataSourceId, propriedadeData, conclusao);
+
+    [Fact]
+    public async Task Carregar_BancoJaConectado_PreSelecionaADataEAConclusaoSalvas()
+    {
+        _notion.ConfiguracaoAtual = Salva("ds-1", "Prazo", new ConclusaoNotion("Status", TipoDeConclusaoNotion.Status, "Concluído"));
+        var vm = CriarVm();
+
+        await CarregarAsync(vm);
+
+        Assert.Equal("Prazo", vm.PropriedadeDataEscolhida!.Nome);
+        Assert.Equal("Status", vm.ConclusaoEscolhida.Propriedade!.Nome);
+        Assert.Equal("Concluído", vm.ValorConcluidoEscolhido);
+        Assert.Empty(_dialogos.Avisos);
+    }
+
+    [Fact]
+    public async Task Reconectar_SemMexerNasEscolhas_MantemADataEAConclusaoSalvas()
+    {
+        // Achado no teste real: reconectar (token salvo, só o link) zerava "concluído" e os itens concluídos voltavam a pendentes.
+        var salva = new ConclusaoNotion("Feito", TipoDeConclusaoNotion.Checkbox);
+        _notion.ConfiguracaoAtual = Salva("ds-1", "Prazo", salva);
+        var vm = CriarVm();
+        await CarregarAsync(vm);
+
+        await vm.ConectarCommand.ExecuteAsync(null);
+
+        var conexao = Assert.Single(_notion.Conexoes);
+        Assert.Equal("Prazo", conexao.PropriedadeData);
+        Assert.Equal(salva, conexao.Conclusao);
+    }
+
+    [Fact]
+    public async Task Carregar_ConclusaoSalvaQueSumiu_VoltaParaNenhumaEAvisa()
+    {
+        _notion.ConfiguracaoAtual = Salva("ds-1", "Prazo", new ConclusaoNotion("Removida", TipoDeConclusaoNotion.Checkbox));
+        var vm = CriarVm();
+
+        await CarregarAsync(vm);
+
+        Assert.True(vm.ConclusaoEscolhida.EhNenhuma);
+        Assert.Equal("Prazo", vm.PropriedadeDataEscolhida!.Nome); // o que ainda existe continua marcado
+        Assert.Contains("Removida", Assert.Single(_dialogos.Avisos));
+    }
+
+    [Fact]
+    public async Task Carregar_ConclusaoSalvaQueMudouDeTipo_VoltaParaNenhumaEAvisa()
+    {
+        // "Status" existe, mas agora é do tipo status e a configuração salva era checkbox.
+        _notion.ConfiguracaoAtual = Salva("ds-1", "Data", new ConclusaoNotion("Status", TipoDeConclusaoNotion.Checkbox));
+        var vm = CriarVm();
+
+        await CarregarAsync(vm);
+
+        Assert.True(vm.ConclusaoEscolhida.EhNenhuma);
+        Assert.Contains("Status", Assert.Single(_dialogos.Avisos));
+    }
+
+    [Fact]
+    public async Task Carregar_DataSalvaQueSumiu_VoltaParaAPrimeiraEAvisa()
+    {
+        _notion.ConfiguracaoAtual = Salva("ds-1", "Antiga", new ConclusaoNotion("Feito", TipoDeConclusaoNotion.Checkbox));
+        var vm = CriarVm();
+
+        await CarregarAsync(vm);
+
+        Assert.Equal("Data", vm.PropriedadeDataEscolhida!.Nome);
+        Assert.Equal("Feito", vm.ConclusaoEscolhida.Propriedade!.Nome);
+        Assert.Contains("Antiga", Assert.Single(_dialogos.Avisos));
+    }
+
+    [Fact]
+    public async Task Carregar_OpcaoDeStatusSalvaQueSumiu_MantemAPropriedadeEAvisa()
+    {
+        _notion.ConfiguracaoAtual = Salva("ds-1", "Data", new ConclusaoNotion("Status", TipoDeConclusaoNotion.Status, "Pronto!"));
+        var vm = CriarVm();
+
+        await CarregarAsync(vm);
+
+        Assert.Equal("Status", vm.ConclusaoEscolhida.Propriedade!.Nome);
+        Assert.Contains("Pronto!", Assert.Single(_dialogos.Avisos));
+    }
+
+    [Fact]
+    public async Task Carregar_OutroBanco_NaoPreSelecionaNemAvisa()
+    {
+        _notion.ConfiguracaoAtual = new ConfiguracaoNotion("outro-banco", "ds-9", "Prazo", new ConclusaoNotion("Feito", TipoDeConclusaoNotion.Checkbox));
+        var vm = CriarVm();
+
+        await CarregarAsync(vm);
+
+        Assert.Equal("Data", vm.PropriedadeDataEscolhida!.Nome);
+        Assert.True(vm.ConclusaoEscolhida.EhNenhuma);
+        Assert.Empty(_dialogos.Avisos);
+    }
+
+    [Fact]
+    public async Task Carregar_BancoComVariosDataSources_EscolheOQueJaEstaSalvo()
+    {
+        _notion.Estrutura = new EstruturaDoBancoNotion("db", "Projetos",
+        [
+            new FonteDeDadosNotion("ds-1", "Ativos", [new PropriedadeNotion("Inicio", "date")]),
+            new FonteDeDadosNotion("ds-2", "Arquivo", [new PropriedadeNotion("Quando", "date"), new PropriedadeNotion("Pronto", "checkbox")])
+        ]);
+        _notion.ConfiguracaoAtual = new ConfiguracaoNotion("db", "ds-2", "Quando", new ConclusaoNotion("Pronto", TipoDeConclusaoNotion.Checkbox));
+        var vm = CriarVm();
+
+        await CarregarAsync(vm);
+
+        Assert.Equal("ds-2", vm.FonteEscolhida!.Id);
+        Assert.Equal("Quando", vm.PropriedadeDataEscolhida!.Nome);
+        Assert.Equal("Pronto", vm.ConclusaoEscolhida.Propriedade!.Nome);
+        Assert.Empty(_dialogos.Avisos);
+    }
+
     // ---------- conectar ----------
 
     [Fact]
