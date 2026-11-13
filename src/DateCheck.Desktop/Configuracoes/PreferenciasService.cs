@@ -35,7 +35,7 @@ public sealed class PreferenciasService : IPreferenciasService
 
         // Arquivo ausente, corrompido ou com valores absurdos: volta ao padrão em vez de quebrar o app.
         var salvas = armazenamento.Carregar();
-        _atual = salvas is { EhValida: true } ? salvas : Preferencias.Padrao;
+        _atual = salvas is { Notion: not null, EhValida: true } ? salvas : Preferencias.Padrao;
     }
 
     public event Action? Alterado;
@@ -48,7 +48,8 @@ public sealed class PreferenciasService : IPreferenciasService
 
         if (!preferencias.EhValida)
             throw new ArgumentException(
-                $"A antecedência deve ficar entre 0 e {Preferencias.AntecedenciaMaximaEmMinutos} minutos.",
+                $"A antecedência deve ficar entre 0 e {Preferencias.AntecedenciaMaximaEmMinutos} minutos e o intervalo do Notion entre "
+                + $"{NotionPreferencias.IntervaloMinimoEmMinutos} e {NotionPreferencias.IntervaloMaximoEmMinutos}.",
                 nameof(preferencias));
 
         _armazenamento.Salvar(preferencias);

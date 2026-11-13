@@ -1,0 +1,21 @@
+{
+  "object": "list",
+  "results": [
+    {
+      "object": "page",
+      "id": "00000000-0000-0000-0000-000000000201",
+      "archived": false,
+      "in_trash": false,
+      "url": "https://www.notion.so/00000000000000000000000000000201",
+      "properties": {
+        "Nome": { "id": "title", "type": "title", "title": [ { "type": "text", "text": { "content": "Com status" }, "plain_text": "Com status" } ] },
+        "Data": { "id": "d1", "type": "date", "date": { "start": "2026-11-10", "end": null, "time_zone": null } },
+        "Status": { "id": "s1", "type": "status", "status": { "id": "o3", "name": "Concluído", "color": "green" } }
+      }
+    }
+  ],
+  "next_cursor": null,
+  "has_more": false,
+  "type": "page_or_data_source",
+  "page_or_data_source": {}
+}

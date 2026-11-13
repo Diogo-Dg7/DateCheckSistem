@@ -1,0 +1,20 @@
+{
+  "object": "database",
+  "id": "01234567-89ab-cdef-0123-456789abcdef",
+  "in_trash": false,
+  "title": [
+    {
+      "type": "text",
+      "text": {
+        "content": "Tarefas"
+      },
+      "plain_text": "Tarefas"
+    }
+  ],
+  "data_sources": [
+    {
+      "id": "ds-0001",
+      "name": "Tarefas"
+    }
+  ]
+}

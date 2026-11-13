@@ -5,7 +5,10 @@ using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Threading;
 using DateCheck.Application;
+using DateCheck.Application.Interfaces;
 using DateCheck.Desktop.Configuracoes;
+using DateCheck.Desktop.Integracoes;
+using DateCheck.Desktop.Diagnostico;
 using DateCheck.Desktop.Navegacao;
 using DateCheck.Desktop.Notificacoes;
 using DateCheck.Desktop.Servicos;
@@ -13,6 +16,7 @@ using DateCheck.Desktop.ViewModels;
 using DateCheck.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace DateCheck.Desktop;
 
@@ -29,6 +33,7 @@ public partial class App : System.Windows.Application
     private IconeDaBandeja? _bandeja;
     private GerenciadorDeToast? _toast;
     private ControleDaJanela? _controle;
+    private ReacoesDaSincronizacao? _reacoes;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -55,6 +60,11 @@ public partial class App : System.Windows.Application
             _host = CriarHost(e.Args);
             var services = _host.Services;
 
+            services.GetRequiredService<ILogger<App>>().LogInformation(
+                "{Titulo} iniciado. Ambiente: {Ambiente}. Pasta de dados: {Pasta}.",
+                TituloApp, AmbienteDeExecucao.Atual.EhDesenvolvimento ? "Development" : "Production",
+                AmbienteDeExecucao.Atual.PastaDeDados);
+
             _controle = services.GetRequiredService<ControleDaJanela>();
             _instancia.EscutarPedidosDeAbertura(_controle.Mostrar);
 
@@ -74,7 +84,11 @@ public partial class App : System.Windows.Application
             // Se o início com o Windows está ligado, mantém o caminho do registro apontando para este executável.
             services.GetRequiredService<InicioComWindowsService>().CorrigirCaminhoSeNecessario();
 
-            await _host.StartAsync(); // inicia as notificações em segundo plano
+            // Criadas aqui, na thread da interface (capturam o contexto dela) e antes do segundo plano começar,
+            // para já ouvirem a primeira sincronização.
+            _reacoes = services.GetRequiredService<ReacoesDaSincronizacao>();
+
+            await _host.StartAsync(); // inicia as notificações e a sincronização em segundo plano
 
             var janela = services.GetRequiredService<MainWindow>();
             MainWindow = janela;
@@ -124,6 +138,9 @@ public partial class App : System.Windows.Application
         ambiente.GarantirBancoIsolado(builder.Configuration[$"ConnectionStrings:{DateCheck.Infrastructure.Persistencia.ConexaoPadrao.Nome}"]);
         builder.Services.AddSingleton(ambiente);
 
+        // Log em arquivo na pasta de dados do ambiente (logs\datecheck-aaaaMMdd.log), com tokens sempre mascarados.
+        builder.Logging.AddProvider(new ArquivoDeLogProvider(Path.Combine(ambiente.PastaDeDados, "logs")));
+
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -147,6 +164,15 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<INotificador, AppNotificacaoNotificador>();
         builder.Services.AddHostedService<NotificacaoService>();
 
+        // Integrações (opcionais: sem Notion configurado nada roda em segundo plano). O cofre de segredos e o resto
+        // ficam na pasta de dados do ambiente: DateCheck em produção, DateCheck-Dev em desenvolvimento.
+        DateCheck.Integracoes.DependencyInjection.AddIntegracoes(builder.Services, ambiente.PastaDeDados);
+        builder.Services.AddSingleton<IConfiguracaoNotion, ConfiguracaoNotionDasPreferencias>();
+        builder.Services.AddSincronizacaoNotion();
+        builder.Services.AddSingleton<IAvisoDeBandeja>(sp => sp.GetRequiredService<IconeDaBandeja>());
+        builder.Services.AddSingleton<ReacoesDaSincronizacao>();
+        builder.Services.AddHostedService<SincronizacaoNotionBackgroundService>();
+
         // Telas.
         builder.Services.AddSingleton<NavegacaoService>();
         builder.Services.AddSingleton<INavegacao>(sp => sp.GetRequiredService<NavegacaoService>());
@@ -155,6 +181,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddTransient<AgendamentoFormViewModel>();
         builder.Services.AddTransient<ConfiguracoesViewModel>();
+        builder.Services.AddTransient<NotionConfiguracoesViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 
         return builder.Build();

@@ -1,0 +1,15 @@
+{
+  "object": "data_source",
+  "id": "ds-0001",
+  "in_trash": false,
+  "title": [],
+  "properties": {
+    "Nome": {
+      "id": "title",
+      "name": "Nome",
+      "description": null,
+      "type": "title",
+      "title": {}
+    }
+  }
+}

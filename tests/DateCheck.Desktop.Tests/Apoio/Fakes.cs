@@ -86,6 +86,14 @@ public sealed class FakeNavegacao : INavegacao
 
     public int CalendarioMostrado { get; private set; }
 
+    public int Recarregamentos { get; private set; }
+
+    public Task RecarregarAtualAsync()
+    {
+        Recarregamentos++;
+        return Task.CompletedTask;
+    }
+
     public Task MostrarHojeAsync(DateTime? dia = null)
     {
         HojeMostrado.Add(dia);
@@ -273,5 +281,151 @@ public sealed class FakePreferenciasService : IPreferenciasService
     {
         Atual = preferencias;
         Alterado?.Invoke();
+    }
+}
+
+/// <summary>Serviço de sincronização falso: conta chamadas e dispara os eventos sob demanda.</summary>
+public sealed class SincronizacaoFalsa : DateCheck.Application.Servicos.ISincronizacaoExternaService
+{
+    private int _chamadas;
+    private int _chamadasAguardadas;
+    private readonly SemaphoreSlim _sinal = new(0);
+
+    public int Chamadas => Volatile.Read(ref _chamadas);
+
+    /// <summary>
+    /// Espera, SEM depender de tempo real, até que a chamada de número <paramref name="total"/> tenha acontecido.
+    /// O serviço sinaliza cada chamada; o limite só existe para o teste falhar em vez de travar se houver um bug.
+    /// </summary>
+    public async Task AguardarChamadasAsync(int total, TimeSpan? limite = null)
+    {
+        var espera = limite ?? TimeSpan.FromSeconds(30);
+        while (_chamadasAguardadas < total)
+        {
+            if (!await _sinal.WaitAsync(espera))
+                throw new TimeoutException($"Esperava {total} chamada(s) de sincronização, mas só houve {Chamadas}.");
+
+            _chamadasAguardadas++;
+        }
+    }
+
+    public List<bool> Manuais { get; } = [];
+
+    public Exception? ExcecaoNaProxima { get; set; }
+
+    public DateCheck.Application.Servicos.EstadoDaSincronizacao Estado { get; set; } =
+        DateCheck.Application.Servicos.EstadoDaSincronizacao.NaoConfigurado;
+
+    public event Action<DateCheck.Application.Servicos.EstadoDaSincronizacao>? EstadoAlterado;
+
+    public event Action? DadosAlterados;
+
+    public event Action? ReconexaoNecessaria;
+
+    public void DispararDadosAlterados() => DadosAlterados?.Invoke();
+
+    public void DispararReconexao() => ReconexaoNecessaria?.Invoke();
+
+    public void DispararEstado(DateCheck.Application.Servicos.EstadoDaSincronizacao estado)
+    {
+        Estado = estado;
+        EstadoAlterado?.Invoke(estado);
+    }
+
+    public Task<DateCheck.Application.Servicos.EstadoDaSincronizacao> SincronizarAsync(
+        bool manual = false, CancellationToken cancellationToken = default)
+    {
+        Interlocked.Increment(ref _chamadas);
+        lock (Manuais)
+            Manuais.Add(manual);
+        _sinal.Release(); // antes de qualquer exceção: a chamada aconteceu, falhando ou não
+
+        if (ExcecaoNaProxima is { } excecao)
+        {
+            ExcecaoNaProxima = null;
+            throw excecao;
+        }
+
+        return Task.FromResult(Estado);
+    }
+
+    public int Reinicios { get; private set; }
+
+    public void Reiniciar() => Reinicios++;
+
+    public Task<TResultado> ExecutarSemSincronizacaoAsync<TResultado>(
+        Func<Task<TResultado>> acao, CancellationToken cancellationToken = default) => acao();
+}
+
+/// <summary>Serviço do Notion falso para a aba das Configurações.</summary>
+public sealed class NotionServiceFalso : DateCheck.Application.Notion.INotionService
+{
+    public bool EstaConectado { get; set; }
+
+    public bool TemTokenSalvo { get; set; }
+
+    public DateCheck.Application.Notion.ConfiguracaoNotion? ConfiguracaoAtual { get; set; }
+
+    public DateCheck.Application.Notion.EstruturaDoBancoNotion? Estrutura { get; set; }
+
+    public Exception? Falha { get; set; }
+
+    public string ResultadoDoTeste { get; set; } = "Conectado como DateCheck (Casa). Banco \"Tarefas\" acessível.";
+
+    public int Removidos { get; set; }
+
+    public List<(string Token, string Link)> Inspecoes { get; } = [];
+
+    public List<(string Token, string DataSourceId, string PropriedadeData, DateCheck.Application.Notion.ConclusaoNotion? Conclusao)> Conexoes { get; } = [];
+
+    public int Testes { get; private set; }
+
+    public int Desconexoes { get; private set; }
+
+    public Task<DateCheck.Application.Notion.EstruturaDoBancoNotion> InspecionarAsync(
+        string token, string linkOuIdDoBanco, CancellationToken cancellationToken = default)
+    {
+        Inspecoes.Add((token, linkOuIdDoBanco));
+        if (Falha is not null)
+            throw Falha;
+        return Task.FromResult(Estrutura ?? throw new InvalidOperationException("Estrutura não configurada"));
+    }
+
+    public Task ConectarAsync(
+        string token,
+        DateCheck.Application.Notion.EstruturaDoBancoNotion estrutura,
+        string dataSourceId,
+        string propriedadeData,
+        DateCheck.Application.Notion.ConclusaoNotion? conclusao,
+        CancellationToken cancellationToken = default)
+    {
+        if (Falha is not null)
+            throw Falha;
+
+        Conexoes.Add((token, dataSourceId, propriedadeData, conclusao));
+        EstaConectado = true;
+        if (!string.IsNullOrWhiteSpace(token))
+            TemTokenSalvo = true; // token em branco = o do cofre continua
+        ConfiguracaoAtual = new DateCheck.Application.Notion.ConfiguracaoNotion(estrutura.DatabaseId, dataSourceId, propriedadeData, conclusao);
+        return Task.CompletedTask;
+    }
+
+    public Task<string> TestarConexaoAsync(CancellationToken cancellationToken = default)
+    {
+        Testes++;
+        if (Falha is not null)
+            throw Falha;
+        return Task.FromResult(ResultadoDoTeste);
+    }
+
+    public Task<int> DesconectarAsync(CancellationToken cancellationToken = default)
+    {
+        Desconexoes++;
+        if (Falha is not null)
+            throw Falha;
+        EstaConectado = false;
+        TemTokenSalvo = false;
+        ConfiguracaoAtual = null;
+        return Task.FromResult(Removidos);
     }
 }

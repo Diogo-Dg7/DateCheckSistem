@@ -1,0 +1,46 @@
+{
+  "object": "page",
+  "id": "00000000-0000-0000-0000-000000000014",
+  "created_time": "2026-10-01T12:00:00.000Z",
+  "last_edited_time": "2026-11-01T12:00:00.000Z",
+  "archived": false,
+  "in_trash": false,
+  "url": "https://www.notion.so/00000000000000000000000000000014",
+  "properties": {
+    "Nome": {
+      "id": "title",
+      "type": "title",
+      "title": [
+        {
+          "type": "text",
+          "text": {
+            "content": "Status ok"
+          },
+          "plain_text": "Status ok"
+        }
+      ]
+    },
+    "Data": {
+      "id": "abcd",
+      "type": "date",
+      "date": {
+        "start": "2026-11-10",
+        "end": null,
+        "time_zone": null
+      }
+    },
+    "Status": {
+      "id": "s1",
+      "type": "status",
+      "status": {
+        "id": "x",
+        "name": "Concluído",
+        "color": "green"
+      }
+    }
+  },
+  "parent": {
+    "type": "data_source_id",
+    "data_source_id": "ds-0001"
+  }
+}

@@ -1,3 +1,5 @@
+using DateCheck.Application.Interfaces;
+using DateCheck.Application.Notion;
 using DateCheck.Application.Servicos;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -18,6 +20,19 @@ public static class DependencyInjection
         services.AddSingleton<IAgendamentoService, AgendamentoService>();
         services.AddSingleton<IDuplicacaoService, DuplicacaoService>();
         services.AddSingleton<IRepeticaoService, RepeticaoService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registra a sincronização com o Notion. Quem chama precisa registrar <c>ICofreDeSegredos</c>,
+    /// <c>INotionApi</c>, <c>IConfiguracaoNotion</c> e <c>IAgendamentoRepository</c> (e <c>AddApplication</c>).
+    /// </summary>
+    public static IServiceCollection AddSincronizacaoNotion(this IServiceCollection services)
+    {
+        services.AddSingleton<IFonteDeAgendamentosExterna, NotionFonte>();
+        services.AddSingleton<ISincronizacaoExternaService, SincronizacaoExternaService>();
+        services.AddSingleton<INotionService, NotionService>();
 
         return services;
     }

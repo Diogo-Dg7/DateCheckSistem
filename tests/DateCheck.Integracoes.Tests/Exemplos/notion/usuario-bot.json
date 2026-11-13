@@ -1,0 +1,13 @@
+{
+  "object": "user",
+  "id": "bot-0001",
+  "type": "bot",
+  "name": "DateCheck",
+  "bot": {
+    "owner": {
+      "type": "workspace",
+      "workspace": true
+    },
+    "workspace_name": "Casa do Diogo"
+  }
+}

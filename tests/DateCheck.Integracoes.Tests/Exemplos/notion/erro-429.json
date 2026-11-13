@@ -1,0 +1,11 @@
+{
+  "object": "error",
+  "status": 429,
+  "code": "rate_limited",
+  "message": "You have been rate limited. Please try again in a few minutes.",
+  "request_id": "00000000-aaaa-bbbb-cccc-000000000000",
+  "additional_data": {
+    "retry_after": "2",
+    "rate_limit_reason": "public_api_endpoint_rate_limit"
+  }
+}
