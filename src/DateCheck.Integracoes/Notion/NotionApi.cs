@@ -309,7 +309,7 @@ public sealed class NotionApi : INotionApi
             using var resposta = await cliente.SendAsync(requisicao, cancellationToken).ConfigureAwait(false);
 
             if (!resposta.IsSuccessStatusCode)
-                throw await TraduzirErroAsync(resposta, caminho, cancellationToken).ConfigureAwait(false);
+                throw await TraduzirErroAsync(resposta, caminho, token, cancellationToken).ConfigureAwait(false);
 
             await using var fluxo = await resposta.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             return await JsonDocument.ParseAsync(fluxo, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -330,13 +330,18 @@ public sealed class NotionApi : INotionApi
     }
 
     private async Task<FonteExternaException> TraduzirErroAsync(
-        HttpResponseMessage resposta, string caminho, CancellationToken cancellationToken)
+        HttpResponseMessage resposta, string caminho, string token, CancellationToken cancellationToken)
     {
-        var codigo = await LerCodigoDoErroAsync(resposta, cancellationToken).ConfigureAwait(false);
+        var (codigo, motivo) = await LerErroAsync(resposta, cancellationToken).ConfigureAwait(false);
         var status = (int)resposta.StatusCode;
 
-        // Só status e código vão para o log: nunca cabeçalhos, corpo da requisição ou token.
-        _logger.LogWarning("Notion respondeu {Status} ({Codigo}) em {Caminho}.", status, codigo ?? "-", CaminhoSemIds(caminho));
+        // Nunca vão para o log: cabeçalhos, corpo da requisição ou token. Status e código sempre; o motivo (o "message"
+        // do Notion) só no 400 de validação, que é o que o usuário não consegue investigar sozinho.
+        if (status == (int)HttpStatusCode.BadRequest && LimparMotivo(motivo, token) is { Length: > 0 } motivoLimpo)
+            _logger.LogWarning(
+                "Notion respondeu {Status} ({Codigo}) em {Caminho}: {Motivo}", status, codigo ?? "-", CaminhoSemIds(caminho), motivoLimpo);
+        else
+            _logger.LogWarning("Notion respondeu {Status} ({Codigo}) em {Caminho}.", status, codigo ?? "-", CaminhoSemIds(caminho));
 
         return resposta.StatusCode switch
         {
@@ -356,18 +361,38 @@ public sealed class NotionApi : INotionApi
         };
     }
 
-    private static async Task<string?> LerCodigoDoErroAsync(HttpResponseMessage resposta, CancellationToken cancellationToken)
+    private static async Task<(string? Codigo, string? Motivo)> LerErroAsync(
+        HttpResponseMessage resposta, CancellationToken cancellationToken)
     {
         try
         {
             await using var fluxo = await resposta.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var documento = await JsonDocument.ParseAsync(fluxo, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return Texto(documento.RootElement, "code");
+            return (Texto(documento.RootElement, "code"), Texto(documento.RootElement, "message"));
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
-            return null;
+            return (null, null);
         }
+    }
+
+    /// <summary>Tamanho máximo do motivo do Notion no log.</summary>
+    private const int LimiteDoMotivoNoLog = 200;
+
+    /// <summary>
+    /// Deixa o "message" do Notion seguro para o log: sem o token, em uma linha só (nada de quebra de linha vinda de
+    /// fora) e curto.
+    /// </summary>
+    private static string? LimparMotivo(string? motivo, string token)
+    {
+        if (string.IsNullOrWhiteSpace(motivo))
+            return null;
+
+        if (!string.IsNullOrEmpty(token))
+            motivo = motivo.Replace(token, "***", StringComparison.Ordinal);
+
+        var umaLinha = string.Join(' ', motivo.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return umaLinha.Length <= LimiteDoMotivoNoLog ? umaLinha : umaLinha[..LimiteDoMotivoNoLog] + "…";
     }
 
     private static string CaminhoSemIds(string caminho) =>

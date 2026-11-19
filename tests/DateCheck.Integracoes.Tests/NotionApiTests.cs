@@ -563,6 +563,66 @@ public sealed class NotionApiTests : IDisposable
         Assert.Contains("400, validation_error", ex.Message);
     }
 
+    // ---------- log do 400: o motivo que o Notion dá ----------
+    // Sem o "message" do Notion o log só dizia "400 (validation_error)" e a causa só aparecia chamando a API na mão.
+    // Só o 400 de validação registra o motivo (ele cita ids e nomes de propriedade, nunca conteúdo de páginas).
+
+    [Fact]
+    public async Task Estrutura400_RegistraNoLogOMotivoQueONotionDeu()
+    {
+        Responder(HttpStatusCode.BadRequest, "erro-400-id-nao-e-banco.json");
+
+        await Assert.ThrowsAsync<FonteExternaException>(() => Api.ObterEstruturaAsync(Token, "db"));
+
+        var aviso = Assert.Single(_log.Avisos);
+        Assert.Contains("400", aviso);
+        Assert.Contains("validation_error", aviso);
+        Assert.Contains("is a page, not a database", aviso);
+    }
+
+    [Fact]
+    public async Task Consulta400_RegistraNoLogOMotivoQueONotionDeu()
+    {
+        Responder(HttpStatusCode.BadRequest, "erro-400-validacao.json");
+        _servidor.Responder(HttpStatusCode.OK, DataSourceCom(("Nome", "title"), ("Data", "date")));
+
+        await Assert.ThrowsAsync<FonteExternaException>(() => Consultar());
+
+        Assert.Contains(_log.Avisos, a => a.Contains("Could not find property with name or id: Data"));
+    }
+
+    [Fact]
+    public async Task Log400_MotivoGrandeEhCortado_SemQuebraDeLinhaESemOToken()
+    {
+        var longo = "linha1\r\nlinha2 " + Token + " " + new string('x', 5000);
+        _servidor.Responder(
+            HttpStatusCode.BadRequest,
+            JsonSerializer.Serialize(new { @object = "error", status = 400, code = "validation_error", message = longo }));
+
+        await Assert.ThrowsAsync<FonteExternaException>(() => Api.ObterEstruturaAsync(Token, "db"));
+
+        var aviso = Assert.Single(_log.Avisos);
+        Assert.DoesNotContain(Token, aviso);
+        Assert.DoesNotContain('\r', aviso);
+        Assert.DoesNotContain('\n', aviso);
+        Assert.Contains("linha1 linha2", aviso);
+        Assert.True(aviso.Length < 500, $"o aviso de log deveria ser curto, mas tem {aviso.Length} caracteres");
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized, "erro-401.json")]
+    [InlineData(HttpStatusCode.Forbidden, "erro-403.json")]
+    [InlineData(HttpStatusCode.NotFound, "erro-404.json")]
+    public async Task LogDeOutrosErros_NaoRegistraOTextoDoNotion(HttpStatusCode status, string arquivo)
+    {
+        Responder(status, arquivo);
+        var mensagemDoNotion = JsonDocument.Parse(Exemplos.Texto(arquivo)).RootElement.GetProperty("message").GetString()!;
+
+        await Assert.ThrowsAsync<FonteExternaException>(() => Api.ObterEstruturaAsync(Token, "db"));
+
+        Assert.All(_log.Avisos, a => Assert.DoesNotContain(mensagemDoNotion, a));
+    }
+
     // ---------- identidade ----------
 
     [Fact]
