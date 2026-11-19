@@ -80,8 +80,7 @@ public sealed class NotionApi : INotionApi
     public async Task<EstruturaDoBancoNotion> ObterEstruturaAsync(
         string token, string databaseId, CancellationToken cancellationToken = default)
     {
-        using var banco = await EnviarAsync(
-            HttpMethod.Get, $"v1/databases/{Uri.EscapeDataString(databaseId)}", token, corpo: null, cancellationToken);
+        using var banco = await LerBancoAsync(token, databaseId, cancellationToken);
 
         var titulo = TextoRico(banco.RootElement, "title");
         var fontes = new List<FonteDeDadosNotion>();
@@ -105,6 +104,29 @@ public sealed class NotionApi : INotionApi
 
         return new EstruturaDoBancoNotion(databaseId, string.IsNullOrWhiteSpace(titulo) ? "(sem nome)" : titulo, fontes);
     }
+
+    /// <summary>
+    /// Lê o banco pelo id. O Notion recusa com 400 validation_error um id que não é o de um banco (o link colado era
+    /// de uma página, de uma visão...): a tela mostrava só "recusou o pedido (400, validation_error)". O token já passou
+    /// pela autenticação quando o Notion chega a validar o id, então o motivo é o id, e a mensagem diz isso.
+    /// </summary>
+    private async Task<JsonDocument> LerBancoAsync(string token, string databaseId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await EnviarAsync(
+                HttpMethod.Get, $"v1/databases/{Uri.EscapeDataString(databaseId)}", token, corpo: null, cancellationToken);
+        }
+        catch (FonteExternaException ex) when (ex.StatusHttp == (int)HttpStatusCode.BadRequest)
+        {
+            throw new FonteExternaException(TipoDeFalhaExterna.RespostaInvalida, MensagemDeIdQueNaoEhBanco, ex);
+        }
+    }
+
+    private const string MensagemDeIdQueNaoEhBanco =
+        "Esse link não é de um banco do Notion (o Notion recusou o id; pode ser o de uma página, de uma visão ou de outro item). "
+        + "Abra o banco no Notion, use o menu \"…\" > Copiar link e cole em Configurações > Notion. "
+        + "Nada foi alterado no DateCheck.";
 
     private async Task<FonteDeDadosNotion> ObterFonteDeDadosAsync(
         string token, string id, string nome, CancellationToken cancellationToken)

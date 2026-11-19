@@ -500,6 +500,69 @@ public sealed class NotionApiTests : IDisposable
         Assert.Equal(TipoDeFalhaExterna.RespostaInvalida, ex.Tipo);
     }
 
+    // ---------- estrutura recusada com 400: o id colado não é o de um banco ----------
+    // Achado no teste real (caso 14): colar o link de algo que não é um banco (uma página, por exemplo) faz o Notion
+    // recusar "GET /v1/databases/{id}" com 400 validation_error. A tela mostrava só "O Notion recusou o pedido
+    // (400, validation_error)", sem dizer que o link é que estava errado. O exemplo de resposta é fictício.
+
+    [Fact]
+    public async Task Estrutura400_IdQueNaoEhDeBanco_DizQueOLinkNaoEhDeUmBancoEOQueFazer()
+    {
+        Responder(HttpStatusCode.BadRequest, "erro-400-id-nao-e-banco.json");
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Api.ObterEstruturaAsync(Token, "db"));
+
+        Assert.Equal(TipoDeFalhaExterna.RespostaInvalida, ex.Tipo);
+        Assert.False(ex.ExigeReconexao);
+        Assert.Contains("não é de um banco", ex.Message);
+        Assert.Contains("Copiar link", ex.Message);
+        Assert.Contains("Nada foi alterado", ex.Message);
+        Assert.DoesNotContain("400", ex.Message);
+        Assert.DoesNotContain("validation_error", ex.Message);
+        Assert.DoesNotContain(Token, ex.Message);
+        Assert.DoesNotContain(Token, ex.ToString());
+
+        // Nenhuma tentativa repetida e nenhuma leitura extra: o 400 de validação não se resolve tentando de novo.
+        Assert.Single(_servidor.Recebidas);
+    }
+
+    [Fact]
+    public async Task Estrutura400_NaoMostraAoUsuarioOTextoCruDoNotion()
+    {
+        Responder(HttpStatusCode.BadRequest, "erro-400-id-nao-e-banco.json");
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Api.ObterEstruturaAsync(Token, "db"));
+
+        Assert.DoesNotContain("Provided ID", ex.Message);
+        Assert.DoesNotContain("00000000-1111", ex.Message);
+    }
+
+    [Fact]
+    public async Task Estrutura401_ContinuaExigindoReconexao()
+    {
+        Responder(HttpStatusCode.Unauthorized, "erro-401.json");
+
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(() => Api.ObterEstruturaAsync(Token, "db"));
+
+        Assert.Equal(TipoDeFalhaExterna.NaoAutorizado, ex.Tipo);
+        Assert.True(ex.ExigeReconexao);
+    }
+
+    [Fact]
+    public async Task Estrutura400_DeUmDataSourceDoBanco_NaoViraMensagemDeLinkErrado()
+    {
+        // O 400 ao ler um data source (o id veio do próprio Notion) não tem a ver com o link colado: mantém a genérica.
+        _servidor.Responder(HttpStatusCode.OK, """{"object":"database","id":"db","title":[],"data_sources":[{"id":"ds-0001","name":"Fonte"}]}""");
+        Responder(HttpStatusCode.BadRequest, "erro-400-id-nao-e-banco.json");
+
+        // Duas requisições: o limitador de taxa espera pelo relógio falso, então é preciso avançá-lo.
+        var ex = await Assert.ThrowsAsync<FonteExternaException>(
+            () => Api.ObterEstruturaAsync(Token, "db").AvancarAteConcluirAsync(_relogio));
+
+        Assert.DoesNotContain("não é de um banco", ex.Message);
+        Assert.Contains("400, validation_error", ex.Message);
+    }
+
     // ---------- identidade ----------
 
     [Fact]

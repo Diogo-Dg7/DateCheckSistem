@@ -1,0 +1,7 @@
+{
+  "object": "error",
+  "status": 400,
+  "code": "validation_error",
+  "message": "Provided ID 00000000-1111-2222-3333-444444444444 is a page, not a database.",
+  "request_id": "00000000-aaaa-bbbb-cccc-000000000001"
+}
